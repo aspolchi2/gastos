@@ -50,7 +50,7 @@ export default function RootLayout({
         inter.variable,
       )}
     >
-      <body className="h-[var(--app-height,100dvh)] flex flex-col overflow-hidden bg-[#030711] text-white max-w-sm mx-auto dark:bg-black px-4 py-8">
+      <body className="h-[var(--app-height,100dvh)] flex flex-col overflow-hidden bg-[#030711] text-white max-w-md mx-auto dark:bg-black ">
         <ViewportHeight />
         <Header />
         {children}
