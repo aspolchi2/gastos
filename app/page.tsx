@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import TabCard from "@/components/ui/TabCard";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import { registrar } from "@/lib/data";
 
 export default async function Home() {
@@ -23,6 +24,8 @@ export default async function Home() {
           <TabCard key={item.href} {...item} />
         ))}
       </div>
+
+      <InstallPrompt />
     </main>
   );
 }
