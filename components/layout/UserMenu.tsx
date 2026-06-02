@@ -32,7 +32,7 @@ export default function UserMenu({ image, name }: UserMenuProps) {
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center gap-2 w-full justify-between"
+      className="relative flex items-center gap-2 w-full justify-between px-4 "
     >
       <p>{name}</p>
       <button

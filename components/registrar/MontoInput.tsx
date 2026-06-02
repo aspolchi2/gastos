@@ -28,10 +28,20 @@ const MontoInput = ({
   onMonedaChange,
 }: MontoInputProps) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const displayRef = React.useRef<HTMLButtonElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
     onChange(digits ? parseInt(digits, 10) : 0);
+  };
+
+  // El input real es invisible, así que el navegador no lo trae a la vista al
+  // abrir el teclado. Llevamos el número visible al área visible una vez que el
+  // viewport se reacomodó tras aparecer el teclado.
+  const scrollIntoView = () => {
+    window.setTimeout(() => {
+      displayRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 300);
   };
 
   return (
@@ -51,6 +61,7 @@ const MontoInput = ({
       </div>
 
       <button
+        ref={displayRef}
         type="button"
         onClick={() => inputRef.current?.focus()}
         className="flex items-end justify-center gap-2 border-b border-white/15 pb-3"
@@ -63,6 +74,7 @@ const MontoInput = ({
           ref={inputRef}
           value={value ? String(value) : ""}
           onChange={handleChange}
+          onFocus={scrollIntoView}
           inputMode="numeric"
           aria-label="Monto"
           className="pointer-events-none absolute h-0 w-0 opacity-0"
