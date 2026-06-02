@@ -1,5 +1,170 @@
-import { BanknoteArrowDown, BanknoteArrowUp, PiggyBank } from "lucide-react";
-import { tabCardProps } from "./types";
+import {
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  PiggyBank,
+  Utensils,
+  HardHat,
+  Car,
+  Leaf,
+  Pizza,
+  Gamepad2,
+  ShoppingBag,
+  Cat,
+  Shirt,
+  DollarSign,
+  Bus,
+  Stethoscope,
+  Landmark,
+  Dumbbell,
+  Percent,
+  Layers,
+  Shield,
+  Lightbulb,
+  CreditCard,
+} from "lucide-react";
+import { categoriaProps, tabCardProps } from "./types";
+
+const VARIABLE = "#7DD3FC";
+const FIJO = "#FDBA74";
+
+export const gastosVariables: categoriaProps[] = [
+  {
+    title: "Alimentación",
+    description: "Supermercado, carnicería, panadería, etc",
+    icon: <Utensils />,
+    color: VARIABLE,
+    slug: "alimentacion",
+  },
+  {
+    title: "Arreglos casa",
+    description: "Pintura, herramientas, mano de obra, etc",
+    icon: <HardHat />,
+    color: VARIABLE,
+    slug: "arreglos-casa",
+  },
+  {
+    title: "Arreglos auto",
+    description: "Mantenimiento general, mecánico, mejoras",
+    icon: <Car />,
+    color: VARIABLE,
+    slug: "arreglos-auto",
+  },
+  {
+    title: "Belleza",
+    description: "Peluquería, tratamientos, perfumería general",
+    icon: <Leaf />,
+    color: VARIABLE,
+    slug: "belleza",
+  },
+  {
+    title: "Delivery",
+    description: "Incluye take away, carritos, comida preparada.",
+    icon: <Pizza />,
+    color: VARIABLE,
+    slug: "delivery",
+  },
+  {
+    title: "Entretenimiento",
+    description: "Juegos, cine, salidas a cenar, juntadas, etc",
+    icon: <Gamepad2 />,
+    color: VARIABLE,
+    slug: "entretenimiento",
+  },
+  {
+    title: "Extras",
+    description: "Kiosco, regalos, baterías, cables, varios",
+    icon: <ShoppingBag />,
+    color: VARIABLE,
+    slug: "extras",
+  },
+  {
+    title: "Gatas",
+    description: "Piedritas, comida, veterinaria, juguetes",
+    icon: <Cat />,
+    color: VARIABLE,
+    slug: "gatas",
+  },
+  {
+    title: "Indumentaria",
+    description: "Ropa y calzado en general",
+    icon: <Shirt />,
+    color: VARIABLE,
+    slug: "indumentaria",
+  },
+  {
+    title: "Préstamos dados",
+    description: "Plata que prestamos",
+    icon: <DollarSign />,
+    color: VARIABLE,
+    slug: "prestamos-dados",
+  },
+  {
+    title: "Transporte",
+    description: "Uber, colectivo, taxi, nafta",
+    icon: <Bus />,
+    color: VARIABLE,
+    slug: "transporte",
+  },
+  {
+    title: "Salud",
+    description: "Consultas, medicamentos, masajes, etc",
+    icon: <Stethoscope />,
+    color: VARIABLE,
+    slug: "salud",
+  },
+];
+
+export const gastosFijos: categoriaProps[] = [
+  {
+    title: "Cuota hipotecario",
+    description: "La cuota del préstamo hipotecario de la casa",
+    icon: <Landmark />,
+    color: FIJO,
+    slug: "cuota-hipotecario",
+  },
+  {
+    title: "Ejercicio",
+    description: "Cuota del gimnasio o actividad deportiva",
+    icon: <Dumbbell />,
+    color: FIJO,
+    slug: "ejercicio",
+  },
+  {
+    title: "Impuestos",
+    description: "Tasa municipal, ARBA, patente, ganancias, etc",
+    icon: <Percent />,
+    color: FIJO,
+    slug: "impuestos",
+  },
+  {
+    title: "Pago de deudas",
+    description: "Otros préstamos, préstamos familiares",
+    icon: <Layers />,
+    color: FIJO,
+    slug: "pago-de-deudas",
+  },
+  {
+    title: "Seguros",
+    description: "Auto, hogar, vida",
+    icon: <Shield />,
+    color: FIJO,
+    slug: "seguros",
+  },
+  {
+    title: "Servicios",
+    description: "Agua, luz, gas, limpieza, internet, celular, etc",
+    icon: <Lightbulb />,
+    color: FIJO,
+    slug: "servicios",
+  },
+  {
+    title: "Tarjetas",
+    description: "Pago de las tarjetas de crédito",
+    icon: <CreditCard />,
+    color: FIJO,
+    slug: "tarjetas",
+  },
+];
 
 export const registrar: tabCardProps[] = [
   {
@@ -8,6 +173,8 @@ export const registrar: tabCardProps[] = [
     icon: <BanknoteArrowDown />,
     color: "#FCA5A5",
     href: "/registrar/gasto",
+    variables: gastosVariables,
+    fijos: gastosFijos,
   },
   {
     title: "Ingreso",
