@@ -25,7 +25,7 @@ export default async function RegistrarTipoPage({
   const item = registrar.find((r) => r.href === `/registrar/${tipo}`)!;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 px-6 pb-10">
+    <main className="flex flex-1 flex-col gap-6 ">
       <div className="flex items-center gap-3">
         <Link
           href="/"

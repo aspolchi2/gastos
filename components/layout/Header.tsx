@@ -8,7 +8,7 @@ const Header = async () => {
   }
 
   return (
-    <header className="w-full flex items-end justify-end px-6 py-4 flex-col">
+    <header className="w-full flex items-end justify-end flex-col pb-4">
       {session.user.image && (
         <UserMenu
           image={session.user.image}

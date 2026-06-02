@@ -6,7 +6,7 @@ const TabCard = ({ title, description, icon, color, href }: tabCardProps) => {
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition active:scale-[0.98]"
+      className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5  transition active:scale-[0.98] p-4"
     >
       <span
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
