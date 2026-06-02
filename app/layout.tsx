@@ -4,7 +4,6 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import Header from "@/components/layout/Header";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-import ViewportHeight from "@/components/layout/ViewportHeight";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -50,10 +49,9 @@ export default function RootLayout({
         inter.variable,
       )}
     >
-      <body className="h-[var(--app-height,100dvh)] flex flex-col overflow-hidden bg-[#030711] text-white max-w-md mx-auto dark:bg-black py-12">
-        <ViewportHeight />
+      <body className="h-[100dvh] flex flex-col overflow-hidden bg-[#030711] text-white max-w-md mx-auto dark:bg-black py-12">
         <Header />
-        <div className=" px-4 py-4">
+        <div className="flex min-h-0 flex-1 flex-col px-4 py-4">
           {children}
           <ServiceWorkerRegister />
         </div>

@@ -76,6 +76,7 @@ const MontoInput = ({
           onChange={handleChange}
           onFocus={scrollIntoView}
           inputMode="numeric"
+          enterKeyHint="next"
           aria-label="Monto"
           className="pointer-events-none absolute h-0 w-0 opacity-0"
         />

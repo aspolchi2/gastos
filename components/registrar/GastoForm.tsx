@@ -26,6 +26,8 @@ export default function GastoForm() {
   const [categoria, setCategoria] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    // Cerramos el teclado al cambiar de paso y volvemos el scroll al tope.
+    (document.activeElement as HTMLElement | null)?.blur();
     scrollRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
@@ -44,6 +46,14 @@ export default function GastoForm() {
     // TODO: en el último paso, guardar el gasto.
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Solo el paso con botón "Siguiente" avanza por submit (Enter del teclado).
+    if (STEPS[step] === "datos" && canContinue) {
+      handleNext();
+    }
+  };
+
   const handleSelectCategoria = (slug: string) => {
     setCategoria(slug);
     setStep((s) => s + 1);
@@ -55,7 +65,10 @@ export default function GastoForm() {
     STEPS[step] === "datos" ? Boolean(fecha) && monto > 0 : true;
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col">
+    <form
+      onSubmit={handleSubmit}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <div
         ref={scrollRef}
         className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto"
@@ -127,6 +140,7 @@ export default function GastoForm() {
 
       <footer className="flex shrink-0 gap-3 border-t border-white/10 pt-4">
         <Button
+          type="button"
           variant="outline"
           className="flex-1 text-foreground"
           onClick={handleBack}
@@ -135,14 +149,14 @@ export default function GastoForm() {
         </Button>
         {STEPS[step] !== "tipo" && (
           <Button
+            type="submit"
             className="flex-1"
-            onClick={handleNext}
             disabled={!canContinue}
           >
             Siguiente
           </Button>
         )}
       </footer>
-    </main>
+    </form>
   );
 }
