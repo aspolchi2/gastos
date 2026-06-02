@@ -21,11 +21,38 @@ import {
   Shield,
   Lightbulb,
   CreditCard,
+  Wallet,
+  Home,
 } from "lucide-react";
 import { categoriaProps, tabCardProps } from "./types";
 
 const VARIABLE = "#7DD3FC";
 const FIJO = "#FDBA74";
+const ORIGEN = "#86EFAC";
+
+export const origenes: categoriaProps[] = [
+  {
+    title: "Sueldos",
+    description: "Se descuenta de los ingresos del mes",
+    icon: <Wallet />,
+    color: ORIGEN,
+    slug: "sueldos",
+  },
+  {
+    title: "Ahorro casa",
+    description: "Se descuenta del ahorro para la casa",
+    icon: <Home />,
+    color: ORIGEN,
+    slug: "ahorro-casa",
+  },
+  {
+    title: "Ahorro general",
+    description: "Se descuenta del ahorro general",
+    icon: <PiggyBank />,
+    color: ORIGEN,
+    slug: "ahorro-general",
+  },
+];
 
 export const gastosVariables: categoriaProps[] = [
   {

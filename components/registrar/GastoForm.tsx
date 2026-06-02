@@ -9,9 +9,15 @@ import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
-import { gastosVariables, gastosFijos } from "@/lib/data";
+import { gastosVariables, gastosFijos, origenes } from "@/lib/data";
 
-const STEPS = ["datos", "tipo"] as const;
+const STEPS = ["datos", "tipo", "origen"] as const;
+
+const TITULOS: Record<(typeof STEPS)[number], string> = {
+  datos: "Registrar gasto",
+  tipo: "Tipo de Gasto",
+  origen: "Origen",
+};
 
 type TipoGasto = "variable" | "fijo";
 
@@ -24,12 +30,25 @@ export default function GastoForm() {
   const [moneda, setMoneda] = React.useState<Moneda>("ARS");
   const [tipo, setTipo] = React.useState<TipoGasto>("variable");
   const [categoria, setCategoria] = React.useState<string | null>(null);
+  const [origen, setOrigen] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Cerramos el teclado al cambiar de paso y volvemos el scroll al tope.
     (document.activeElement as HTMLElement | null)?.blur();
     scrollRef.current?.scrollTo({ top: 0 });
   }, [step]);
+
+  const paso = STEPS[step];
+  const esUltimo = step === STEPS.length - 1;
+
+  const categorias = tipo === "variable" ? gastosVariables : gastosFijos;
+
+  const canContinue =
+    paso === "datos"
+      ? Boolean(fecha) && monto > 0
+      : paso === "tipo"
+        ? Boolean(categoria)
+        : Boolean(origen);
 
   const handleBack = () => {
     if (step === 0) {
@@ -40,49 +59,33 @@ export default function GastoForm() {
   };
 
   const handleNext = () => {
-    if (step < STEPS.length - 1) {
-      setStep((s) => s + 1);
+    if (!canContinue) return;
+    if (esUltimo) {
+      // TODO: guardar el gasto.
+      return;
     }
-    // TODO: en el último paso, guardar el gasto.
+    setStep((s) => s + 1);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Solo el paso con botón "Siguiente" avanza por submit (Enter del teclado).
-    if (STEPS[step] === "datos" && canContinue) {
-      handleNext();
-    }
+    handleNext();
   };
-
-  const handleSelectCategoria = (slug: string) => {
-    setCategoria(slug);
-    setStep((s) => s + 1);
-  };
-
-  const categorias = tipo === "variable" ? gastosVariables : gastosFijos;
-
-  const canContinue =
-    STEPS[step] === "datos" ? Boolean(fecha) && monto > 0 : true;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex min-h-0 flex-1 flex-col"
-    >
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollRef}
         className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto"
       >
         <header>
-          <h1 className="text-2xl font-bold">
-            {STEPS[step] === "tipo" ? "Tipo de Gasto" : "Registrar gasto"}
-          </h1>
+          <h1 className="text-2xl font-bold">{TITULOS[paso]}</h1>
           <p className="mt-1 text-sm text-zinc-400">
             Paso {step + 1} de {STEPS.length}
           </p>
         </header>
 
-        {STEPS[step] === "datos" && (
+        {paso === "datos" && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <Label htmlFor="fecha">Fecha</Label>
@@ -101,7 +104,7 @@ export default function GastoForm() {
           </div>
         )}
 
-        {STEPS[step] === "tipo" && (
+        {paso === "tipo" && (
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
               <button
@@ -130,10 +133,26 @@ export default function GastoForm() {
                   key={cat.slug}
                   {...cat}
                   selected={categoria === cat.slug}
-                  onSelect={handleSelectCategoria}
+                  onSelect={setCategoria}
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {paso === "origen" && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-zinc-400">
+              ¿De dónde se descuenta la plata?
+            </p>
+            {origenes.map((o) => (
+              <CategoriaCard
+                key={o.slug}
+                {...o}
+                selected={origen === o.slug}
+                onSelect={setOrigen}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -147,15 +166,9 @@ export default function GastoForm() {
         >
           Atrás
         </Button>
-        {STEPS[step] !== "tipo" && (
-          <Button
-            type="submit"
-            className="flex-1"
-            disabled={!canContinue}
-          >
-            Siguiente
-          </Button>
-        )}
+        <Button type="submit" className="flex-1" disabled={!canContinue}>
+          {esUltimo ? "Guardar" : "Siguiente"}
+        </Button>
       </footer>
     </form>
   );

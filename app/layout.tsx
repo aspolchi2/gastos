@@ -49,9 +49,9 @@ export default function RootLayout({
         inter.variable,
       )}
     >
-      <body className="h-[100dvh] flex flex-col overflow-hidden bg-[#030711] text-white max-w-md mx-auto dark:bg-black py-12">
+      <body className="h-[100dvh] flex flex-col overflow-hidden bg-[#030711] text-white max-w-md mx-auto dark:bg-black pt-12 pb-6">
         <Header />
-        <div className="flex min-h-0 flex-1 flex-col mx-4 py-4">
+        <div className="flex min-h-0 flex-1 flex-col mx-4 pt-4">
           {children}
           <ServiceWorkerRegister />
         </div>
