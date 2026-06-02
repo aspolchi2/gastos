@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { LineChart, Home } from "lucide-react";
+import { LineChart, Home, Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ const TITULOS: Record<(typeof STEPS)[number], string> = {
 };
 
 type TipoGasto = "variable" | "fijo";
+type Status = "idle" | "loading" | "success" | "error";
 
 export default function GastoForm() {
   const router = useRouter();
@@ -31,6 +32,8 @@ export default function GastoForm() {
   const [tipo, setTipo] = React.useState<TipoGasto>("variable");
   const [categoria, setCategoria] = React.useState<string | null>(null);
   const [origen, setOrigen] = React.useState<string | null>(null);
+  const [status, setStatus] = React.useState<Status>("idle");
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Cerramos el teclado al cambiar de paso y volvemos el scroll al tope.
@@ -39,16 +42,10 @@ export default function GastoForm() {
   }, [step]);
 
   const paso = STEPS[step];
-  const esUltimo = step === STEPS.length - 1;
 
   const categorias = tipo === "variable" ? gastosVariables : gastosFijos;
 
-  const canContinue =
-    paso === "datos"
-      ? Boolean(fecha) && monto > 0
-      : paso === "tipo"
-        ? Boolean(categoria)
-        : Boolean(origen);
+  const datosValidos = Boolean(fecha) && monto > 0;
 
   const handleBack = () => {
     if (step === 0) {
@@ -58,18 +55,47 @@ export default function GastoForm() {
     }
   };
 
-  const handleNext = () => {
-    if (!canContinue) return;
-    if (esUltimo) {
-      // TODO: guardar el gasto.
-      return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // El único "Siguiente" avanza desde el paso de datos (monto).
+    if (paso === "datos" && datosValidos) {
+      setStep((s) => s + 1);
     }
+  };
+
+  // Al elegir una categoría se pasa directamente al siguiente paso.
+  const handleSelectCategoria = (slug: string) => {
+    setCategoria(slug);
     setStep((s) => s + 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleNext();
+  const handleGuardar = async () => {
+    if (!fecha || !categoria || !origen) return;
+    setStatus("loading");
+    setError(null);
+    try {
+      const res = await fetch("/api/gastos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fecha: fecha.toISOString(),
+          monto,
+          moneda,
+          tipo,
+          categoria,
+          origen,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? "No se pudo guardar el gasto");
+      }
+      setStatus("success");
+      setTimeout(() => router.push("/"), 1000);
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    }
   };
 
   return (
@@ -133,7 +159,7 @@ export default function GastoForm() {
                   key={cat.slug}
                   {...cat}
                   selected={categoria === cat.slug}
-                  onSelect={setCategoria}
+                  onSelect={handleSelectCategoria}
                 />
               ))}
             </div>
@@ -157,18 +183,49 @@ export default function GastoForm() {
         )}
       </div>
 
-      <footer className="flex shrink-0 gap-3 border-t border-white/10 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1 text-foreground"
-          onClick={handleBack}
-        >
-          Atrás
-        </Button>
-        <Button type="submit" className="flex-1" disabled={!canContinue}>
-          {esUltimo ? "Guardar" : "Siguiente"}
-        </Button>
+      <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 pt-4">
+        {status === "error" && error && (
+          <p className="text-center text-sm text-red-400">{error}</p>
+        )}
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 text-foreground"
+            onClick={handleBack}
+            disabled={status === "loading" || status === "success"}
+          >
+            Atrás
+          </Button>
+
+          {paso === "datos" && (
+            <Button type="submit" className="flex-1" disabled={!datosValidos}>
+              Siguiente
+            </Button>
+          )}
+
+          {paso === "origen" && (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleGuardar}
+              disabled={!origen || status === "loading" || status === "success"}
+            >
+              {status === "loading" && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {status === "success" && <Check className="size-4" />}
+              {status === "loading"
+                ? "Guardando…"
+                : status === "success"
+                  ? "Guardado"
+                  : status === "error"
+                    ? "Reintentar"
+                    : "Guardar"}
+            </Button>
+          )}
+        </div>
       </footer>
     </form>
   );
