@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
+import { notifyOthers } from "@/app/utils/push";
 
 type GastoBody = {
   fecha?: string;
@@ -55,6 +56,20 @@ export async function POST(request: Request) {
         origen,
         createdAt: new Date(),
       });
+
+    // Avisamos al otro usuario quién cargó el gasto y cuánto.
+    const quien = session.user.name ?? session.user.email;
+    const importe = (monto / 100).toLocaleString("es-AR", {
+      style: "currency",
+      currency: moneda,
+    });
+    notifyOthers(session.user.email, {
+      title: "Nuevo gasto",
+      body: `${quien} cargó un gasto de ${importe}`,
+      url: "/",
+    }).catch(() => {
+      // No bloqueamos la respuesta si falla el envío de la notificación.
+    });
 
     return Response.json({ ok: true, id: result.insertedId }, { status: 201 });
   } catch (error) {

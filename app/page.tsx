@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import TabCard from "@/components/ui/TabCard";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import EnableNotifications from "@/components/pwa/EnableNotifications";
 import { registrar } from "@/lib/data";
 
 export default async function Home() {
@@ -25,6 +26,7 @@ export default async function Home() {
         ))}
       </div>
 
+      <EnableNotifications />
       <InstallPrompt />
     </main>
   );
