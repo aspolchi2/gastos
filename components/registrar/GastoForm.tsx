@@ -8,18 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
+import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
 import { gastosVariables, gastosFijos } from "@/lib/data";
 
-const STEPS = ["fecha", "tipo", "monto"] as const;
+const STEPS = ["datos", "tipo"] as const;
 
 type TipoGasto = "variable" | "fijo";
 
 export default function GastoForm() {
   const router = useRouter();
+  const scrollRef = React.useRef<HTMLDivElement>(null);
   const [step, setStep] = React.useState(0);
   const [fecha, setFecha] = React.useState<Date | undefined>(() => new Date());
+  const [monto, setMonto] = React.useState(0);
+  const [moneda, setMoneda] = React.useState<Moneda>("ARS");
   const [tipo, setTipo] = React.useState<TipoGasto>("variable");
   const [categoria, setCategoria] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   const handleBack = () => {
     if (step === 0) {
@@ -43,11 +51,15 @@ export default function GastoForm() {
 
   const categorias = tipo === "variable" ? gastosVariables : gastosFijos;
 
-  const canContinue = STEPS[step] === "fecha" ? Boolean(fecha) : true;
+  const canContinue =
+    STEPS[step] === "datos" ? Boolean(fecha) && monto > 0 : true;
 
   return (
     <main className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto"
+      >
         <header>
           <h1 className="text-2xl font-bold">
             {STEPS[step] === "tipo" ? "Tipo de Gasto" : "Registrar gasto"}
@@ -57,10 +69,22 @@ export default function GastoForm() {
           </p>
         </header>
 
-        {STEPS[step] === "fecha" && (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha</Label>
-            <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+        {STEPS[step] === "datos" && (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="fecha">Fecha</Label>
+              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label>Monto</Label>
+              <MontoInput
+                value={monto}
+                onChange={setMonto}
+                moneda={moneda}
+                onMonedaChange={setMoneda}
+              />
+            </div>
           </div>
         )}
 
@@ -98,12 +122,6 @@ export default function GastoForm() {
               ))}
             </div>
           </div>
-        )}
-
-        {STEPS[step] === "monto" && (
-          <p className="text-sm text-zinc-400">
-            Próximamente: monto del gasto.
-          </p>
         )}
       </div>
 
