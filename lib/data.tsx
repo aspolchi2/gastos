@@ -193,6 +193,12 @@ export const gastosFijos: categoriaProps[] = [
   },
 ];
 
+// Todas las categorías de gasto, para mapear slug → metadata (color, icono).
+export const gastoCategorias: categoriaProps[] = [
+  ...gastosVariables,
+  ...gastosFijos,
+];
+
 export const registrar: tabCardProps[] = [
   {
     title: "Gasto",
