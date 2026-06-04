@@ -1,12 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  TrendingDown,
-  TrendingUp,
-  PiggyBank,
-  Wallet,
-} from "lucide-react";
+import { TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 
 import {
   gastoCategorias,
@@ -148,9 +143,6 @@ export default function ResumenTabs({
   const ingresoMetas = React.useMemo(() => metaMap(ingresoCategorias), []);
   const ahorroMetas = React.useMemo(() => metaMap(ahorroCategorias), []);
 
-  const balanceMesArs = ingresos.totalArs - gastos.totalArs;
-  const balanceMesUsd = ingresos.totalUsd - gastos.totalUsd;
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
@@ -171,7 +163,7 @@ export default function ResumenTabs({
         {tab === "gastos" && (
           <>
             <Hero
-              label="Gastado este mes"
+              label="Gastado en el período"
               ars={gastos.totalArs}
               usd={gastos.totalUsd}
               accent="#FCA5A5"
@@ -196,7 +188,7 @@ export default function ResumenTabs({
             <CategoryBars
               data={gastos}
               metas={gastoMetas}
-              emptyText="Todavía no hay gastos este mes."
+              emptyText="No hay gastos en el período."
             />
           </>
         )}
@@ -245,7 +237,7 @@ export default function ResumenTabs({
         {tab === "ahorros" && (
           <>
             <Hero
-              label="Ahorrado este mes"
+              label="Ahorro acumulado (total)"
               ars={ahorros.totalArs}
               usd={ahorros.totalUsd}
               accent="#C4B5FD"
@@ -254,7 +246,7 @@ export default function ResumenTabs({
             <CategoryBars
               data={ahorros}
               metas={ahorroMetas}
-              emptyText="Todavía no hay ahorros este mes."
+              emptyText="Todavía no hay ahorros."
             />
           </>
         )}
@@ -262,33 +254,16 @@ export default function ResumenTabs({
         {tab === "ingresos" && (
           <>
             <Hero
-              label="Ingresos este mes"
+              label="Ingresos en el período"
               ars={ingresos.totalArs}
               usd={ingresos.totalUsd}
               accent="#86EFAC"
               icon={<TrendingUp className="size-4" />}
             />
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <Wallet className="size-4" />
-                Balance del mes (ingresos − gastos)
-              </div>
-              <p
-                className="mt-1 text-2xl font-bold tabular-nums"
-                style={{ color: balanceMesArs < 0 ? "#FCA5A5" : "#86EFAC" }}
-              >
-                {fmt(balanceMesArs)}
-              </p>
-              {balanceMesUsd !== 0 && (
-                <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
-                  {fmt(balanceMesUsd, "USD")}
-                </p>
-              )}
-            </div>
             <CategoryBars
               data={ingresos}
               metas={ingresoMetas}
-              emptyText="Todavía no hay ingresos este mes."
+              emptyText="No hay ingresos en el período."
             />
           </>
         )}

@@ -49,8 +49,13 @@ export default function IngresoForm() {
     }
   };
 
-  // Al elegir el tipo de ingreso pasamos al paso del monto.
+  // Al elegir el tipo de ingreso pasamos al paso del monto. El cambio de
+  // divisas tiene su propio flujo (dos montos y una dirección).
   const handleSelectCategoria = (slug: string) => {
+    if (slug === "cambio-de-divisas") {
+      router.push("/registrar/cambio");
+      return;
+    }
     setCategoria(slug);
     setStep((s) => s + 1);
   };

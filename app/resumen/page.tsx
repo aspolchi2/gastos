@@ -1,9 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
+import {
+  format,
+  parse,
+  isValid,
+  startOfDay,
+  addDays,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
+import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { getOrigenSaldos } from "@/app/utils/saldos";
+import ResumenRangePicker from "@/components/resumen/ResumenRangePicker";
 import ResumenTabs, {
   type CatTotal,
   type TabData,
@@ -13,6 +24,43 @@ export const dynamic = "force-dynamic";
 
 type CatRow = { _id: { categoria?: string; moneda: "ARS" | "USD" }; total: number };
 type TipoRow = { _id: { tipo?: string; moneda: "ARS" | "USD" }; total: number };
+
+function fmtMoneda(cents: number, currency: "ARS" | "USD" = "ARS") {
+  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
+}
+
+// Resuelve el rango [start, end) a partir de los search params. `end` es
+// exclusivo (inicio del día siguiente al último día elegido). Sin params
+// válidos, cae al mes en curso.
+function resolverRango(desde?: string, hasta?: string) {
+  const d = desde ? parse(desde, "yyyy-MM-dd", new Date()) : null;
+  const h = hasta ? parse(hasta, "yyyy-MM-dd", new Date()) : null;
+  if (d && h && isValid(d) && isValid(h) && d <= h) {
+    return { start: startOfDay(d), end: addDays(startOfDay(h), 1) };
+  }
+  const now = new Date();
+  return {
+    start: startOfMonth(now),
+    end: startOfDay(addDays(endOfMonth(now), 1)),
+  };
+}
+
+// Etiqueta legible: "junio 2026" si el rango es un mes completo, si no
+// "1 jun – 15 jul".
+function rangoLabel(start: Date, end: Date) {
+  const lastDay = addDays(end, -1);
+  const esMesCompleto =
+    start.getDate() === 1 &&
+    lastDay.getTime() === endOfMonth(start).setHours(0, 0, 0, 0) &&
+    start.getMonth() === lastDay.getMonth();
+  if (esMesCompleto) return format(start, "MMMM yyyy", { locale: es });
+  const mismoAnio = start.getFullYear() === lastDay.getFullYear();
+  return `${format(start, "d MMM", { locale: es })} – ${format(
+    lastDay,
+    mismoAnio ? "d MMM" : "d MMM yyyy",
+    { locale: es },
+  )}`;
+}
 
 function aggToTab(rows: CatRow[]): TabData {
   const map = new Map<string, CatTotal>();
@@ -29,15 +77,18 @@ function aggToTab(rows: CatRow[]): TabData {
   return { items, totalArs, totalUsd };
 }
 
-export default async function ResumenPage() {
+export default async function ResumenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ desde?: string; hasta?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
   }
 
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const { desde, hasta } = await searchParams;
+  const { start, end } = resolverRango(desde, hasta);
   const mesMatch = { fecha: { $gte: start, $lt: end } };
 
   const client = await clientPromise;
@@ -62,10 +113,8 @@ export default async function ResumenPage() {
         .collection("ingresos")
         .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
         .toArray(),
-      db
-        .collection("ahorros")
-        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
-        .toArray(),
+      // Ahorros: acumulado de todos los tiempos, sin filtrar por el rango.
+      db.collection("ahorros").aggregate<CatRow>(groupCat).toArray(),
       db
         .collection("gastos")
         .aggregate<TipoRow>([
@@ -94,25 +143,44 @@ export default async function ResumenPage() {
     else if (r._id.tipo === "variable") variableArs += r.total;
   }
 
-  const mesLabel = now.toLocaleDateString("es-AR", {
-    month: "long",
-    year: "numeric",
-  });
+  const label = rangoLabel(start, end);
+  const balanceArs = ingresos.totalArs - gastos.totalArs;
+  const balanceUsd = ingresos.totalUsd - gastos.totalUsd;
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-6">
+    <main className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex items-center gap-3">
         <Link
           href="/"
           aria-label="Volver"
-          className="flex size-9 items-center justify-center rounded-full border border-white/10 active:scale-95"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 active:scale-95"
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Resumen</h1>
-          <p className="text-sm capitalize text-zinc-400">{mesLabel}</p>
+        <h1 className="flex-1 text-2xl font-bold">Resumen</h1>
+        <ResumenRangePicker
+          from={format(start, "yyyy-MM-dd")}
+          to={format(addDays(end, -1), "yyyy-MM-dd")}
+          label={label}
+        />
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="flex items-center gap-2 text-sm text-zinc-400">
+          <Wallet className="size-4" />
+          Balance del período (ingresos − gastos)
         </div>
+        <p
+          className="mt-1 text-3xl font-bold tabular-nums"
+          style={{ color: balanceArs < 0 ? "#FCA5A5" : "#86EFAC" }}
+        >
+          {fmtMoneda(balanceArs)}
+        </p>
+        {balanceUsd !== 0 && (
+          <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
+            {fmtMoneda(balanceUsd, "USD")}
+          </p>
+        )}
       </div>
 
       <ResumenTabs
