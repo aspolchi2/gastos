@@ -23,34 +23,121 @@ import {
   CreditCard,
   Wallet,
   Home,
+  Briefcase,
+  Clover,
+  Wand2,
+  Banknote,
+  Plane,
+  Target,
 } from "lucide-react";
 import { categoriaProps, tabCardProps } from "./types";
 
 const VARIABLE = "#7DD3FC";
 const FIJO = "#FDBA74";
 const ORIGEN = "#86EFAC";
+const INGRESO = "#86EFAC";
+const AHORRO = "#C4B5FD";
 
-export const origenes: categoriaProps[] = [
+export const ahorroCategorias: categoriaProps[] = [
+  {
+    title: "Fondo de emergencia",
+    description: "Cubrir al menos 3 meses de los gastos fijos",
+    icon: <PiggyBank />,
+    color: AHORRO,
+    slug: "fondo-de-emergencia",
+  },
+  {
+    title: "Ahorro para la casa",
+    description: "Fondos líquidos para gastos extraordinarios",
+    icon: <Plane />,
+    color: AHORRO,
+    slug: "ahorro-para-la-casa",
+  },
+  {
+    title: "Ahorro para viajes",
+    description: "Fondos destinados a viajes",
+    icon: <Plane />,
+    color: AHORRO,
+    slug: "ahorro-para-viajes",
+  },
+  {
+    title: "Ahorro para inversiones",
+    description: "Fondos para invertir y que la plata camine",
+    icon: <Target />,
+    color: AHORRO,
+    slug: "ahorro-para-inversiones",
+  },
+];
+
+export const ingresoCategorias: categoriaProps[] = [
   {
     title: "Sueldos",
-    description: "Se descuenta de los ingresos del mes",
-    icon: <Wallet />,
-    color: ORIGEN,
+    description: "Sueldos, aguinaldos y bonos",
+    icon: <Briefcase />,
+    color: INGRESO,
     slug: "sueldos",
   },
   {
-    title: "Ahorro casa",
+    title: "Ingreso extra",
+    description: "Reintegros, bonificaciones, azar, etc",
+    icon: <Clover />,
+    color: INGRESO,
+    slug: "ingreso-extra",
+  },
+  {
+    title: "Préstamos",
+    description: "Plata que nos prestaron y que debemos",
+    icon: <Wand2 />,
+    color: INGRESO,
+    slug: "prestamos",
+  },
+  {
+    title: "Cambio de divisas",
+    description: "Ingresos en otra moneda al cambiar divisas",
+    icon: <Banknote />,
+    color: INGRESO,
+    slug: "cambio-de-divisas",
+  },
+];
+
+// Los orígenes son los "buckets" desde donde se descuenta un gasto. Cada slug de
+// ahorro coincide con el slug de su categoría en `ahorroCategorias`, así el saldo
+// se mapea 1:1. "ingresos-mensuales" junta todos los ingresos.
+export const origenes: categoriaProps[] = [
+  {
+    title: "Ingresos mensuales",
+    description: "Se descuenta de los ingresos del mes",
+    icon: <Wallet />,
+    color: ORIGEN,
+    slug: "ingresos-mensuales",
+  },
+  {
+    title: "Fondo de emergencia",
+    description: "Se descuenta del fondo de emergencia",
+    icon: <PiggyBank />,
+    color: ORIGEN,
+    slug: "fondo-de-emergencia",
+  },
+  {
+    title: "Ahorro para la casa",
     description: "Se descuenta del ahorro para la casa",
     icon: <Home />,
     color: ORIGEN,
-    slug: "ahorro-casa",
+    slug: "ahorro-para-la-casa",
   },
   {
-    title: "Ahorro general",
-    description: "Se descuenta del ahorro general",
-    icon: <PiggyBank />,
+    title: "Ahorro para viajes",
+    description: "Se descuenta del ahorro para viajes",
+    icon: <Plane />,
     color: ORIGEN,
-    slug: "ahorro-general",
+    slug: "ahorro-para-viajes",
+  },
+  {
+    title: "Ahorro para inversiones",
+    description: "Se descuenta del ahorro para inversiones",
+    icon: <Target />,
+    color: ORIGEN,
+    slug: "ahorro-para-inversiones",
   },
 ];
 

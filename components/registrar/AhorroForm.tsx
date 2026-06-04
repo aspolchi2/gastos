@@ -2,53 +2,32 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { LineChart, Home, Loader2, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
-import { gastosVariables, gastosFijos, origenes } from "@/lib/data";
-import type { Saldo, Saldos } from "@/app/utils/saldos";
+import { ahorroCategorias } from "@/lib/data";
 
-const STEPS = ["datos", "tipo", "origen"] as const;
+const STEPS = ["tipo", "datos"] as const;
 
 const TITULOS: Record<(typeof STEPS)[number], string> = {
-  datos: "Registrar gasto",
-  tipo: "Tipo de Gasto",
-  origen: "Origen",
+  tipo: "Tipo de Ahorro",
+  datos: "Registrar ahorro",
 };
 
-type TipoGasto = "variable" | "fijo";
 type Status = "idle" | "loading" | "success" | "error";
 
-function formatMoneda(cents: number, currency: Moneda) {
-  return (cents / 100).toLocaleString("es-AR", {
-    style: "currency",
-    currency,
-  });
-}
-
-// Descripción del origen con su saldo disponible por moneda. El USD solo se
-// muestra si hay movimientos en esa moneda.
-function describeSaldo(saldo?: Saldo) {
-  if (!saldo) return "Sin movimientos";
-  const partes = [formatMoneda(saldo.ars, "ARS")];
-  if (saldo.usd !== 0) partes.push(formatMoneda(saldo.usd, "USD"));
-  return `Disponible: ${partes.join(" · ")}`;
-}
-
-export default function GastoForm({ saldos }: { saldos: Saldos }) {
+export default function AhorroForm() {
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [step, setStep] = React.useState(0);
   const [fecha, setFecha] = React.useState<Date | undefined>(() => new Date());
   const [monto, setMonto] = React.useState(0);
   const [moneda, setMoneda] = React.useState<Moneda>("ARS");
-  const [tipo, setTipo] = React.useState<TipoGasto>("variable");
   const [categoria, setCategoria] = React.useState<string | null>(null);
-  const [origen, setOrigen] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState<string | null>(null);
 
@@ -60,8 +39,6 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
 
   const paso = STEPS[step];
 
-  const categorias = tipo === "variable" ? gastosVariables : gastosFijos;
-
   const datosValidos = Boolean(fecha) && monto > 0;
 
   const handleBack = () => {
@@ -72,40 +49,37 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // El único "Siguiente" avanza desde el paso de datos (monto).
-    if (paso === "datos" && datosValidos) {
-      setStep((s) => s + 1);
-    }
-  };
-
-  // Al elegir una categoría se pasa directamente al siguiente paso.
+  // Al elegir el tipo de ahorro pasamos al paso del monto.
   const handleSelectCategoria = (slug: string) => {
     setCategoria(slug);
     setStep((s) => s + 1);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (paso === "datos" && datosValidos) {
+      handleGuardar();
+    }
+  };
+
   const handleGuardar = async () => {
-    if (!fecha || !categoria || !origen) return;
+    if (!fecha || !categoria) return;
     setStatus("loading");
     setError(null);
     try {
-      const res = await fetch("/api/gastos", {
+      const res = await fetch("/api/ahorros", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fecha: fecha.toISOString(),
           monto,
           moneda,
-          tipo,
           categoria,
-          origen,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data.error ?? "No se pudo guardar el gasto");
+        throw new Error(data.error ?? "No se pudo guardar el ahorro");
       }
       setStatus("success");
       setTimeout(() => router.push("/"), 1000);
@@ -114,6 +88,8 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     }
   };
+
+  const guardando = status === "loading" || status === "success";
 
   return (
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -127,6 +103,19 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
             Paso {step + 1} de {STEPS.length}
           </p>
         </header>
+
+        {paso === "tipo" && (
+          <div className="flex flex-col gap-3">
+            {ahorroCategorias.map((cat) => (
+              <CategoriaCard
+                key={cat.slug}
+                {...cat}
+                selected={categoria === cat.slug}
+                onSelect={handleSelectCategoria}
+              />
+            ))}
+          </div>
+        )}
 
         {paso === "datos" && (
           <div className="flex flex-col gap-6">
@@ -146,59 +135,6 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
             </div>
           </div>
         )}
-
-        {paso === "tipo" && (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
-              <button
-                type="button"
-                onClick={() => setTipo("variable")}
-                aria-pressed={tipo === "variable"}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-              >
-                <LineChart className="size-4" />
-                Variable
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipo("fijo")}
-                aria-pressed={tipo === "fijo"}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-              >
-                <Home className="size-4" />
-                Fijo
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {categorias.map((cat) => (
-                <CategoriaCard
-                  key={cat.slug}
-                  {...cat}
-                  selected={categoria === cat.slug}
-                  onSelect={handleSelectCategoria}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {paso === "origen" && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-zinc-400">
-              ¿De dónde se descuenta la plata?
-            </p>
-            {origenes.map((o) => (
-              <CategoriaCard
-                key={o.slug}
-                {...o}
-                description={describeSaldo(saldos[o.slug])}
-                selected={origen === o.slug}
-                onSelect={setOrigen}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       <footer className="flex shrink-0 flex-col gap-3 border-t border-white/10 pt-4">
@@ -212,27 +148,18 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
             variant="outline"
             className="flex-1 text-foreground"
             onClick={handleBack}
-            disabled={status === "loading" || status === "success"}
+            disabled={guardando}
           >
             Atrás
           </Button>
 
           {paso === "datos" && (
-            <Button type="submit" className="flex-1" disabled={!datosValidos}>
-              Siguiente
-            </Button>
-          )}
-
-          {paso === "origen" && (
             <Button
-              type="button"
+              type="submit"
               className="flex-1"
-              onClick={handleGuardar}
-              disabled={!origen || status === "loading" || status === "success"}
+              disabled={!datosValidos || guardando}
             >
-              {status === "loading" && (
-                <Loader2 className="size-4 animate-spin" />
-              )}
+              {status === "loading" && <Loader2 className="size-4 animate-spin" />}
               {status === "success" && <Check className="size-4" />}
               {status === "loading"
                 ? "Guardando…"

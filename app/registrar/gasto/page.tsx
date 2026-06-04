@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import GastoForm from "@/components/registrar/GastoForm";
+import { getOrigenSaldos } from "@/app/utils/saldos";
+
+export const dynamic = "force-dynamic";
 
 export default async function RegistrarGastoPage() {
   const session = await auth();
@@ -8,5 +11,7 @@ export default async function RegistrarGastoPage() {
     redirect("/login");
   }
 
-  return <GastoForm />;
+  const saldos = await getOrigenSaldos();
+
+  return <GastoForm saldos={saldos} />;
 }

@@ -3,17 +3,30 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
-import { gastoCategorias } from "@/lib/data";
+import { getOrigenSaldos } from "@/app/utils/saldos";
+import ResumenTabs, {
+  type CatTotal,
+  type TabData,
+} from "@/components/resumen/ResumenTabs";
 
 export const dynamic = "force-dynamic";
 
-type Row = { _id: string; total: number; count: number };
+type CatRow = { _id: { categoria?: string; moneda: "ARS" | "USD" }; total: number };
+type TipoRow = { _id: { tipo?: string; moneda: "ARS" | "USD" }; total: number };
 
-function formatMonto(cents: number) {
-  return (cents / 100).toLocaleString("es-AR", {
-    style: "currency",
-    currency: "ARS",
-  });
+function aggToTab(rows: CatRow[]): TabData {
+  const map = new Map<string, CatTotal>();
+  for (const r of rows) {
+    const slug = r._id.categoria ?? "otros";
+    const e = map.get(slug) ?? { slug, ars: 0, usd: 0 };
+    if (r._id.moneda === "USD") e.usd += r.total;
+    else e.ars += r.total;
+    map.set(slug, e);
+  }
+  const items = [...map.values()].sort((a, b) => b.ars - a.ars);
+  const totalArs = items.reduce((a, i) => a + i.ars, 0);
+  const totalUsd = items.reduce((a, i) => a + i.usd, 0);
+  return { items, totalArs, totalUsd };
 }
 
 export default async function ResumenPage() {
@@ -22,26 +35,69 @@ export default async function ResumenPage() {
     redirect("/login");
   }
 
-  const client = await clientPromise;
-  const rows = await client
-    .db("gastos")
-    .collection("gastos")
-    .aggregate<Row>([
-      { $match: { moneda: "ARS" } },
-      {
-        $group: {
-          _id: "$categoria",
-          total: { $sum: "$monto" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { total: -1 } },
-    ])
-    .toArray();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const mesMatch = { fecha: { $gte: start, $lt: end } };
 
-  const catMap = new Map(gastoCategorias.map((c) => [c.slug, c]));
-  const total = rows.reduce((acc, r) => acc + r.total, 0);
-  const max = rows.reduce((acc, r) => Math.max(acc, r.total), 0);
+  const client = await clientPromise;
+  const db = client.db("gastos");
+
+  const groupCat = [
+    {
+      $group: {
+        _id: { categoria: "$categoria", moneda: "$moneda" },
+        total: { $sum: "$monto" },
+      },
+    },
+  ];
+
+  const [gastosRows, ingresosRows, ahorrosRows, gastosTipoRows, saldos] =
+    await Promise.all([
+      db
+        .collection("gastos")
+        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
+        .toArray(),
+      db
+        .collection("ingresos")
+        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
+        .toArray(),
+      db
+        .collection("ahorros")
+        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
+        .toArray(),
+      db
+        .collection("gastos")
+        .aggregate<TipoRow>([
+          { $match: mesMatch },
+          {
+            $group: {
+              _id: { tipo: "$tipo", moneda: "$moneda" },
+              total: { $sum: "$monto" },
+            },
+          },
+        ])
+        .toArray(),
+      getOrigenSaldos(),
+    ]);
+
+  const gastos = aggToTab(gastosRows);
+  const ingresos = aggToTab(ingresosRows);
+  const ahorros = aggToTab(ahorrosRows);
+
+  // Desglose fijo/variable de gastos (solo ARS para la barra).
+  let fijoArs = 0;
+  let variableArs = 0;
+  for (const r of gastosTipoRows) {
+    if (r._id.moneda !== "ARS") continue;
+    if (r._id.tipo === "fijo") fijoArs += r.total;
+    else if (r._id.tipo === "variable") variableArs += r.total;
+  }
+
+  const mesLabel = now.toLocaleDateString("es-AR", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-6">
@@ -53,48 +109,20 @@ export default async function ResumenPage() {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <h1 className="text-2xl font-bold">Resumen</h1>
-      </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <p className="text-sm text-zinc-400">Total gastado</p>
-        <p className="mt-1 text-3xl font-bold tabular-nums">
-          {formatMonto(total)}
-        </p>
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="text-sm text-zinc-400">Todavía no hay gastos cargados.</p>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          {rows.map((row) => {
-            const cat = catMap.get(row._id);
-            const color = cat?.color ?? "#93C5FD";
-            const pct = max > 0 ? Math.round((row.total / max) * 100) : 0;
-            return (
-              <div key={row._id} className="flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium text-white">
-                    {cat?.title ?? row._id}
-                  </span>
-                  <span className="text-sm tabular-nums text-zinc-300">
-                    {formatMonto(row.total)}
-                  </span>
-                </div>
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: color,
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+        <div>
+          <h1 className="text-2xl font-bold">Resumen</h1>
+          <p className="text-sm capitalize text-zinc-400">{mesLabel}</p>
         </div>
-      )}
+      </div>
+
+      <ResumenTabs
+        gastos={gastos}
+        ingresos={ingresos}
+        ahorros={ahorros}
+        saldos={saldos}
+        fijoArs={fijoArs}
+        variableArs={variableArs}
+      />
     </main>
   );
 }
