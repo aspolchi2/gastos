@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChartColumn, ChevronRight } from "lucide-react";
+import { ChartColumn, ChevronRight, ListOrdered } from "lucide-react";
 import { auth } from "@/auth";
 import TabCard from "@/components/ui/TabCard";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
@@ -41,6 +41,25 @@ export default async function Home() {
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-white">Ver resumen</h3>
           <p className="mt-0.5 text-sm text-zinc-400">Gastos por categoría.</p>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-zinc-500" />
+      </Link>
+
+      <Link
+        href="/movimientos"
+        className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition active:scale-[0.98]"
+      >
+        <span
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: "#7DD3FC1f", color: "#7DD3FC" }}
+        >
+          <ListOrdered />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-white">Movimientos</h3>
+          <p className="mt-0.5 text-sm text-zinc-400">
+            Ver y borrar lo cargado.
+          </p>
         </div>
         <ChevronRight className="size-5 shrink-0 text-zinc-500" />
       </Link>

@@ -1,0 +1,23 @@
+name: Reporte mensual de gastos
+
+# Corre todos los días a las 15:00 UTC (12:00 en Argentina). El endpoint sólo
+# envía el mail el último día del mes; el resto de los días es un no-op.
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch: # permite dispararlo a mano desde la pestaña Actions
+    inputs:
+      force:
+        description: "Forzar envío aunque no sea el último día (1 = sí)"
+        required: false
+        default: "0"
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint del reporte
+        run: |
+          curl -fsS --retry 3 --retry-delay 10 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/monthly-report?force=${{ github.event.inputs.force || '0' }}"

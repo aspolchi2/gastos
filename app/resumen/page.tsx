@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Wallet } from "lucide-react";
-import {
-  format,
-  parse,
-  isValid,
-  startOfDay,
-  addDays,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
-import { es } from "date-fns/locale";
+import { format, addDays } from "date-fns";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { getOrigenSaldos } from "@/app/utils/saldos";
+import { getMovimientos } from "@/app/utils/movimientos";
+import { resolverRango, rangoLabel } from "@/app/utils/rango";
 import ResumenRangePicker from "@/components/resumen/ResumenRangePicker";
 import ResumenTabs, {
   type CatTotal,
@@ -27,39 +20,6 @@ type TipoRow = { _id: { tipo?: string; moneda: "ARS" | "USD" }; total: number };
 
 function fmtMoneda(cents: number, currency: "ARS" | "USD" = "ARS") {
   return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
-}
-
-// Resuelve el rango [start, end) a partir de los search params. `end` es
-// exclusivo (inicio del día siguiente al último día elegido). Sin params
-// válidos, cae al mes en curso.
-function resolverRango(desde?: string, hasta?: string) {
-  const d = desde ? parse(desde, "yyyy-MM-dd", new Date()) : null;
-  const h = hasta ? parse(hasta, "yyyy-MM-dd", new Date()) : null;
-  if (d && h && isValid(d) && isValid(h) && d <= h) {
-    return { start: startOfDay(d), end: addDays(startOfDay(h), 1) };
-  }
-  const now = new Date();
-  return {
-    start: startOfMonth(now),
-    end: startOfDay(addDays(endOfMonth(now), 1)),
-  };
-}
-
-// Etiqueta legible: "junio 2026" si el rango es un mes completo, si no
-// "1 jun – 15 jul".
-function rangoLabel(start: Date, end: Date) {
-  const lastDay = addDays(end, -1);
-  const esMesCompleto =
-    start.getDate() === 1 &&
-    lastDay.getTime() === endOfMonth(start).setHours(0, 0, 0, 0) &&
-    start.getMonth() === lastDay.getMonth();
-  if (esMesCompleto) return format(start, "MMMM yyyy", { locale: es });
-  const mismoAnio = start.getFullYear() === lastDay.getFullYear();
-  return `${format(start, "d MMM", { locale: es })} – ${format(
-    lastDay,
-    mismoAnio ? "d MMM" : "d MMM yyyy",
-    { locale: es },
-  )}`;
 }
 
 function aggToTab(rows: CatRow[]): TabData {
@@ -103,8 +63,14 @@ export default async function ResumenPage({
     },
   ];
 
-  const [gastosRows, ingresosRows, ahorrosRows, gastosTipoRows, saldos] =
-    await Promise.all([
+  const [
+    gastosRows,
+    ingresosRows,
+    ahorrosRows,
+    gastosTipoRows,
+    saldos,
+    movimientos,
+  ] = await Promise.all([
       db
         .collection("gastos")
         .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
@@ -128,11 +94,18 @@ export default async function ResumenPage({
         ])
         .toArray(),
       getOrigenSaldos(),
+      getMovimientos(start, end),
     ]);
 
   const gastos = aggToTab(gastosRows);
   const ingresos = aggToTab(ingresosRows);
   const ahorros = aggToTab(ahorrosRows);
+
+  // Detalle de gastos individuales, más recientes primero, para el listado por
+  // día dentro de la pestaña Gastos.
+  const gastosDetalle = movimientos
+    .filter((m) => m.clase === "Gasto")
+    .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
 
   // Desglose fijo/variable de gastos (solo ARS para la barra).
   let fijoArs = 0;
@@ -190,6 +163,7 @@ export default async function ResumenPage({
         saldos={saldos}
         fijoArs={fijoArs}
         variableArs={variableArs}
+        gastosDetalle={gastosDetalle}
       />
     </main>
   );

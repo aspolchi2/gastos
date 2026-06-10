@@ -23,13 +23,20 @@ type Props = {
   to: string;
   /** Etiqueta legible del rango aplicado (ej. "junio 2026"). */
   label: string;
+  /** Ruta a la que navegar con el rango en la query. Por defecto /resumen. */
+  basePath?: string;
 };
 
 function fmtDay(d: Date) {
   return format(d, "yyyy-MM-dd");
 }
 
-export default function ResumenRangePicker({ from, to, label }: Props) {
+export default function ResumenRangePicker({
+  from,
+  to,
+  label,
+  basePath = "/resumen",
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [range, setRange] = React.useState<DateRange | undefined>({
@@ -40,7 +47,7 @@ export default function ResumenRangePicker({ from, to, label }: Props) {
   // Navega al mismo /resumen con el rango en la URL: el Server Component
   // re-corre las agregaciones con las fechas nuevas (sin fetch en cliente).
   const navegar = (desde: Date, hasta: Date) => {
-    router.push(`/resumen?desde=${fmtDay(desde)}&hasta=${fmtDay(hasta)}`);
+    router.push(`${basePath}?desde=${fmtDay(desde)}&hasta=${fmtDay(hasta)}`);
     setOpen(false);
   };
 

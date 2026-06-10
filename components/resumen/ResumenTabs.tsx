@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 
 import {
@@ -11,6 +13,7 @@ import {
 } from "@/lib/data";
 import type { categoriaProps } from "@/lib/types";
 import type { Saldos } from "@/app/utils/saldos";
+import type { Movimiento } from "@/app/utils/movimientos";
 
 export type CatTotal = { slug: string; ars: number; usd: number };
 export type TabData = { items: CatTotal[]; totalArs: number; totalUsd: number };
@@ -22,6 +25,7 @@ type Props = {
   saldos: Saldos;
   fijoArs: number;
   variableArs: number;
+  gastosDetalle: Movimiento[];
 };
 
 type TabKey = "gastos" | "disponible" | "ahorros" | "ingresos";
@@ -95,6 +99,91 @@ function CategoryBars({
   );
 }
 
+// "Martes 9/6/2026". Las fechas se guardan a medianoche UTC; usamos getters UTC
+// para no correr el día en AR (UTC-3).
+function fmtDia(d: Date) {
+  const utc = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
+  const s = format(utc, "EEEE d/M/yyyy", { locale: es });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Detalle de gastos individuales agrupados por día (la lista llega ordenada de
+// más reciente a más antigua).
+function GastoDetalle({
+  items,
+  metas,
+}: {
+  items: Movimiento[];
+  metas: Map<string, categoriaProps>;
+}) {
+  if (items.length === 0) return null;
+
+  const grupos: { key: string; fecha: Date; movs: Movimiento[] }[] = [];
+  const idx = new Map<string, number>();
+  for (const m of items) {
+    const f = m.fecha;
+    const key = `${f.getUTCFullYear()}-${f.getUTCMonth()}-${f.getUTCDate()}`;
+    let i = idx.get(key);
+    if (i === undefined) {
+      i = grupos.length;
+      idx.set(key, i);
+      grupos.push({ key, fecha: f, movs: [] });
+    }
+    grupos[i].movs.push(m);
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="text-sm font-semibold text-zinc-300">Detalle por día</h3>
+      {grupos.map((g) => {
+        const totalArs = g.movs
+          .filter((m) => m.moneda === "ARS")
+          .reduce((a, m) => a + m.monto, 0);
+        const totalUsd = g.movs
+          .filter((m) => m.moneda === "USD")
+          .reduce((a, m) => a + m.monto, 0);
+        return (
+          <div key={g.key} className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3 border-b border-white/10 pb-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                {fmtDia(g.fecha)}
+              </span>
+              <span className="text-xs tabular-nums text-zinc-500">
+                {montoLabel(totalArs, totalUsd)}
+              </span>
+            </div>
+            {g.movs.map((m) => {
+              const meta = m.categoria ? metas.get(m.categoria) : undefined;
+              const color = meta?.color ?? FALLBACK_COLOR;
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="truncate text-sm text-white">
+                      {meta?.title ?? m.categoria}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm tabular-nums text-zinc-300">
+                    {fmt(m.monto, m.moneda)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Hero({
   label,
   ars,
@@ -136,6 +225,7 @@ export default function ResumenTabs({
   saldos,
   fijoArs,
   variableArs,
+  gastosDetalle,
 }: Props) {
   const [tab, setTab] = React.useState<TabKey>("gastos");
 
@@ -190,6 +280,7 @@ export default function ResumenTabs({
               metas={gastoMetas}
               emptyText="No hay gastos en el período."
             />
+            <GastoDetalle items={gastosDetalle} metas={gastoMetas} />
           </>
         )}
 
