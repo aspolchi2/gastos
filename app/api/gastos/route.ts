@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { agregarEnPlanilla } from "@/app/utils/planilla";
 import { parseDia } from "@/lib/fecha";
 import { gastoCategorias, origenes } from "@/lib/data";
 
@@ -72,13 +74,27 @@ export async function POST(request: Request) {
       style: "currency",
       currency: moneda,
     });
-    notifyOthers(session.user.email, {
-      title: "Nuevo gasto",
-      body: `${quien} cargó un gasto de ${importe}`,
-      url: "/",
-    }).catch(() => {
-      // No bloqueamos la respuesta si falla el envío de la notificación.
-    });
+    const email = session.user.email;
+    // Después de responder: avisar al otro y copiar a la planilla. Ninguno
+    // bloquea ni hace fallar el guardado.
+    after(() =>
+      Promise.allSettled([
+        notifyOthers(email, {
+          title: "Nuevo gasto",
+          body: `${quien} cargó un gasto de ${importe}`,
+          url: "/",
+        }),
+        agregarEnPlanilla({
+          id: result.insertedId,
+          coleccion: "gastos",
+          fecha,
+          monto,
+          moneda,
+          categoria,
+          tipo,
+        }),
+      ]),
+    );
 
     return Response.json({ ok: true, id: result.insertedId }, { status: 201 });
   } catch (error) {

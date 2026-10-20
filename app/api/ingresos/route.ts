@@ -1,10 +1,15 @@
+import { after } from "next/server";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { agregarEnPlanilla } from "@/app/utils/planilla";
 import { parseDia } from "@/lib/fecha";
 import { ingresoCategorias } from "@/lib/data";
 
-const CATEGORIAS = new Set(ingresoCategorias.map((c) => c.slug));
+// Los cambios de divisas entran por /api/cambios (son dos movimientos enlazados).
+const CATEGORIAS = new Set(
+  ingresoCategorias.map((c) => c.slug).filter((s) => s !== "cambio-de-divisas"),
+);
 
 type IngresoBody = {
   fecha?: string;
@@ -64,13 +69,26 @@ export async function POST(request: Request) {
       style: "currency",
       currency: moneda,
     });
-    notifyOthers(session.user.email, {
-      title: "Nuevo ingreso",
-      body: `${quien} cargó un ingreso de ${importe}`,
-      url: "/",
-    }).catch(() => {
-      // No bloqueamos la respuesta si falla el envío de la notificación.
-    });
+    const email = session.user.email;
+    // Después de responder: avisar al otro y copiar a la planilla. Ninguno
+    // bloquea ni hace fallar el guardado.
+    after(() =>
+      Promise.allSettled([
+        notifyOthers(email, {
+          title: "Nuevo ingreso",
+          body: `${quien} cargó un ingreso de ${importe}`,
+          url: "/",
+        }),
+        agregarEnPlanilla({
+          id: result.insertedId,
+          coleccion: "ingresos",
+          fecha,
+          monto,
+          moneda,
+          categoria,
+        }),
+      ]),
+    );
 
     return Response.json({ ok: true, id: result.insertedId }, { status: 201 });
   } catch (error) {

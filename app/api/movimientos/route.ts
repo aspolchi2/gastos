@@ -1,7 +1,9 @@
 import { ObjectId } from "mongodb";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { borrarDePlanilla } from "@/app/utils/planilla";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,13 +72,19 @@ export async function DELETE(request: Request) {
     const que = doc.cambioId
       ? "un cambio de divisas"
       : `${ARTICULO[coleccion]} de ${importe}`;
-    notifyOthers(session.user.email, {
-      title: "Movimiento eliminado",
-      body: `${quien} eliminó ${que}`,
-      url: "/movimientos",
-    }).catch(() => {
-      // No bloqueamos la respuesta si falla la notificación.
-    });
+    const email = session.user.email;
+    // Los cambios de divisas y los ahorros no se copian a la planilla.
+    const enPlanilla = !doc.cambioId && coleccion !== "ahorros";
+    after(() =>
+      Promise.allSettled([
+        notifyOthers(email, {
+          title: "Movimiento eliminado",
+          body: `${quien} eliminó ${que}`,
+          url: "/movimientos",
+        }),
+        enPlanilla && borrarDePlanilla(doc._id, doc.fecha),
+      ]),
+    );
 
     return Response.json({ ok: true, deleted });
   } catch (error) {
