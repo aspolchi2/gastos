@@ -9,6 +9,12 @@ export const dynamic = "force-dynamic";
 const COLECCIONES = ["gastos", "ingresos", "ahorros"] as const;
 type Coleccion = (typeof COLECCIONES)[number];
 
+const ARTICULO: Record<Coleccion, string> = {
+  gastos: "un gasto",
+  ingresos: "un ingreso",
+  ahorros: "un ahorro",
+};
+
 function esColeccion(v: string | null): v is Coleccion {
   return v !== null && (COLECCIONES as readonly string[]).includes(v);
 }
@@ -57,9 +63,16 @@ export async function DELETE(request: Request) {
     }
 
     const quien = session.user.name ?? session.user.email;
+    const importe = (Math.abs(doc.monto) / 100).toLocaleString("es-AR", {
+      style: "currency",
+      currency: doc.moneda,
+    });
+    const que = doc.cambioId
+      ? "un cambio de divisas"
+      : `${ARTICULO[coleccion]} de ${importe}`;
     notifyOthers(session.user.email, {
       title: "Movimiento eliminado",
-      body: `${quien} eliminó un movimiento`,
+      body: `${quien} eliminó ${que}`,
       url: "/movimientos",
     }).catch(() => {
       // No bloqueamos la respuesta si falla la notificación.

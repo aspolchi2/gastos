@@ -1,6 +1,11 @@
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { parseDia } from "@/lib/fecha";
+import { gastoCategorias, origenes } from "@/lib/data";
+
+const CATEGORIAS = new Set(gastoCategorias.map((c) => c.slug));
+const ORIGENES = new Set(origenes.map((o) => o.slug));
 
 type GastoBody = {
   fecha?: string;
@@ -24,16 +29,20 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "JSON inválido" }, { status: 400 });
   }
 
-  const { fecha, monto, moneda, tipo, categoria, origen } = body;
+  const { monto, moneda, tipo, categoria, origen } = body;
+  const fecha = parseDia(body.fecha);
 
   if (
     !fecha ||
     typeof monto !== "number" ||
+    !Number.isSafeInteger(monto) ||
     monto <= 0 ||
     (moneda !== "ARS" && moneda !== "USD") ||
     (tipo !== "variable" && tipo !== "fijo") ||
     !categoria ||
-    !origen
+    !CATEGORIAS.has(categoria) ||
+    !origen ||
+    !ORIGENES.has(origen)
   ) {
     return Response.json(
       { ok: false, error: "Datos incompletos" },
@@ -48,7 +57,7 @@ export async function POST(request: Request) {
       .collection("gastos")
       .insertOne({
         userEmail: session.user.email,
-        fecha: new Date(fecha),
+        fecha,
         monto, // en centavos
         moneda,
         tipo,

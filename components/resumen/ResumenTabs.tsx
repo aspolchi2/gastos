@@ -3,6 +3,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { comoLocal } from "@/lib/fecha";
 import { TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 
 import {
@@ -12,6 +13,7 @@ import {
   origenes,
 } from "@/lib/data";
 import type { categoriaProps } from "@/lib/types";
+import Segmented from "@/components/ui/Segmented";
 import type { Saldos } from "@/app/utils/saldos";
 import type { Movimiento } from "@/app/utils/movimientos";
 
@@ -30,11 +32,11 @@ type Props = {
 
 type TabKey = "gastos" | "disponible" | "ahorros" | "ingresos";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "gastos", label: "Gastos" },
-  { key: "disponible", label: "Disponible" },
-  { key: "ahorros", label: "Ahorros" },
-  { key: "ingresos", label: "Ingresos" },
+const TABS: { value: TabKey; label: string }[] = [
+  { value: "gastos", label: "Gastos" },
+  { value: "disponible", label: "Disponible" },
+  { value: "ahorros", label: "Ahorros" },
+  { value: "ingresos", label: "Ingresos" },
 ];
 
 function fmt(cents: number, currency: "ARS" | "USD" = "ARS") {
@@ -99,13 +101,9 @@ function CategoryBars({
   );
 }
 
-// "Martes 9/6/2026". Las fechas se guardan a medianoche UTC; usamos getters UTC
-// para no correr el día en AR (UTC-3).
+// "Martes 9 de junio". Mismo formato que la lista de movimientos.
 function fmtDia(d: Date) {
-  const utc = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-  );
-  const s = format(utc, "EEEE d/M/yyyy", { locale: es });
+  const s = format(comoLocal(d), "EEEE d 'de' MMMM", { locale: es });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -147,7 +145,7 @@ function GastoDetalle({
         return (
           <div key={g.key} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3 border-b border-white/10 pb-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+              <span className="text-xs font-medium text-zinc-400">
                 {fmtDia(g.fecha)}
               </span>
               <span className="text-xs tabular-nums text-zinc-500">
@@ -218,6 +216,65 @@ function Hero({
   );
 }
 
+// Total gastado con el reparto fijo/variable (en ARS) como una sola barra.
+function GastoTotal({
+  ars,
+  usd,
+  fijoArs,
+  variableArs,
+}: {
+  ars: number;
+  usd: number;
+  fijoArs: number;
+  variableArs: number;
+}) {
+  const base = fijoArs + variableArs;
+  const pctVariable = base > 0 ? (variableArs / base) * 100 : 0;
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="flex items-center gap-2 text-sm text-zinc-400">
+        <TrendingDown className="size-4 text-(--color-gasto)" />
+        Gastado en el período
+      </div>
+      <p className="mt-1 text-3xl font-bold tabular-nums">{fmt(ars)}</p>
+      {usd !== 0 && (
+        <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
+          {fmt(usd, "USD")}
+        </p>
+      )}
+      {base > 0 && (
+        <div className="mt-4 flex flex-col gap-2">
+          <div className="flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+            {variableArs > 0 && (
+              <div
+                className="rounded-full bg-[#7DD3FC]"
+                style={{ width: `${pctVariable}%` }}
+              />
+            )}
+            {fijoArs > 0 && (
+              <div className="flex-1 rounded-full bg-[#FDBA74]" />
+            )}
+          </div>
+          <div className="flex justify-between text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#7DD3FC]" />
+              Variables
+              <span className="tabular-nums text-zinc-200">
+                {fmt(variableArs)}
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#FDBA74]" />
+              Fijos
+              <span className="tabular-nums text-zinc-200">{fmt(fijoArs)}</span>
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ResumenTabs({
   gastos,
   ingresos,
@@ -235,46 +292,23 @@ export default function ResumenTabs({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            aria-pressed={tab === t.key}
-            className="rounded-lg px-2 py-2 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        aria-label="Sección"
+        value={tab}
+        onChange={setTab}
+        options={TABS}
+        className="shrink-0 [&_button]:px-1"
+      />
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
         {tab === "gastos" && (
           <>
-            <Hero
-              label="Gastado en el período"
+            <GastoTotal
               ars={gastos.totalArs}
               usd={gastos.totalUsd}
-              accent="#FCA5A5"
-              icon={<TrendingDown className="size-4" />}
+              fijoArs={fijoArs}
+              variableArs={variableArs}
             />
-            {(fijoArs > 0 || variableArs > 0) && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-zinc-400">Variables</p>
-                  <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                    {fmt(variableArs)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-zinc-400">Fijos</p>
-                  <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                    {fmt(fijoArs)}
-                  </p>
-                </div>
-              </div>
-            )}
             <CategoryBars
               data={gastos}
               metas={gastoMetas}

@@ -8,14 +8,13 @@ const Header = async () => {
   }
 
   return (
-    <header className="w-full flex items-end justify-end flex-col ">
+    <header className="flex shrink-0 justify-end px-4">
       {session.user.image && (
         <UserMenu
           image={session.user.image}
           name={session.user.name ?? "Usuario"}
         />
       )}
-      <hr className="w-full border-gray-700 mt-4" />
     </header>
   );
 };

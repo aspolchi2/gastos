@@ -41,7 +41,7 @@ export function DatePicker({
       >
         <CalendarIcon className="size-4 opacity-70" />
         {value ? (
-          <span className="capitalize">
+          <span className="first-letter:uppercase">
             {format(value, "EEEE d 'de' MMMM, yyyy", { locale: es })}
           </span>
         ) : (

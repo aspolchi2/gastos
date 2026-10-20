@@ -1,27 +1,10 @@
 import { buildMonthlyReport } from "@/app/utils/report";
 import { sendMail } from "@/app/utils/email";
 import { INTEGRANTES } from "@/lib/integrantes";
+import { partesArgentina, utcDia } from "@/lib/fecha";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// Fecha actual en horario de Argentina (UTC-3, sin DST). Devuelve las partes del
-// calendario y si hoy es el último día del mes, para decidir el envío.
-function fechaArgentina() {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const get = (t: string) => Number(partes.find((p) => p.type === t)!.value);
-  const year = get("year");
-  const month = get("month"); // 1-12
-  const day = get("day");
-  // Día 0 del mes siguiente == último día del mes actual.
-  const ultimoDia = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return { year, month, day, esUltimoDia: day === ultimoDia };
-}
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -34,17 +17,20 @@ export async function GET(request: Request) {
   const force = url.searchParams.get("force") === "1";
   const dry = url.searchParams.get("dry") === "1";
 
-  const { year, month, esUltimoDia } = fechaArgentina();
+  const { year, month, day } = partesArgentina();
 
-  // Solo enviamos el último día del mes, salvo que se fuerce (para probar).
-  if (!esUltimoDia && !force) {
-    return Response.json({ ok: true, enviado: false, motivo: "no es el último día del mes" });
+  // Se envía el día 1 con el mes anterior ya cerrado: así entra todo lo cargado
+  // el último día, incluso después del mediodía. Con force=1 se manda el mes en
+  // curso (para probar).
+  if (day !== 1 && !force) {
+    return Response.json({ ok: true, enviado: false, motivo: "no es el primer día del mes" });
   }
 
-  // Rango del mes en curso [primer día, primer día del mes siguiente) en UTC,
-  // coherente con cómo se guardan las fechas (medianoche UTC).
-  const start = new Date(Date.UTC(year, month - 1, 1));
-  const end = new Date(Date.UTC(year, month, 1));
+  // Rango [primer día, primer día del mes siguiente) en medianoches UTC,
+  // coherente con cómo se guardan las fechas. `month` es 1-12.
+  const mes = force ? month - 1 : month - 2;
+  const start = utcDia(year, mes, 1);
+  const end = utcDia(year, mes + 1, 1);
 
   try {
     const { buffer, filename, periodoLabel, resumenTexto } =

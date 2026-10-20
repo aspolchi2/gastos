@@ -1,6 +1,10 @@
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { parseDia } from "@/lib/fecha";
+import { ahorroCategorias } from "@/lib/data";
+
+const CATEGORIAS = new Set(ahorroCategorias.map((c) => c.slug));
 
 type AhorroBody = {
   fecha?: string;
@@ -22,14 +26,17 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "JSON inválido" }, { status: 400 });
   }
 
-  const { fecha, monto, moneda, categoria } = body;
+  const { monto, moneda, categoria } = body;
+  const fecha = parseDia(body.fecha);
 
   if (
     !fecha ||
     typeof monto !== "number" ||
+    !Number.isSafeInteger(monto) ||
     monto <= 0 ||
     (moneda !== "ARS" && moneda !== "USD") ||
-    !categoria
+    !categoria ||
+    !CATEGORIAS.has(categoria)
   ) {
     return Response.json(
       { ok: false, error: "Datos incompletos" },
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
       .collection("ahorros")
       .insertOne({
         userEmail: session.user.email,
-        fecha: new Date(fecha),
+        fecha,
         monto, // en centavos
         moneda,
         categoria,

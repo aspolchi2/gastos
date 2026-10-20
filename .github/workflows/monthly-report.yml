@@ -1,14 +1,14 @@
 name: Reporte mensual de gastos
 
 # Corre todos los días a las 15:00 UTC (12:00 en Argentina). El endpoint sólo
-# envía el mail el último día del mes; el resto de los días es un no-op.
+# envía el mail el día 1 (con el mes anterior); el resto de los días es un no-op.
 on:
   schedule:
     - cron: "0 15 * * *"
   workflow_dispatch: # permite dispararlo a mano desde la pestaña Actions
     inputs:
       force:
-        description: "Forzar envío aunque no sea el último día (1 = sí)"
+        description: "Forzar envío del mes en curso aunque no sea día 1 (1 = sí)"
         required: false
         default: "0"
 

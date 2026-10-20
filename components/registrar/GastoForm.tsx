@@ -6,8 +6,10 @@ import { LineChart, Home, Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { aDia } from "@/lib/fecha";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
+import Segmented from "@/components/ui/Segmented";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
 import { gastosVariables, gastosFijos, origenes } from "@/lib/data";
 import type { Saldo, Saldos } from "@/app/utils/saldos";
@@ -95,7 +97,7 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fecha: fecha.toISOString(),
+          fecha: aDia(fecha),
           monto,
           moneda,
           tipo,
@@ -149,26 +151,31 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
 
         {paso === "tipo" && (
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
-              <button
-                type="button"
-                onClick={() => setTipo("variable")}
-                aria-pressed={tipo === "variable"}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-              >
-                <LineChart className="size-4" />
-                Variable
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipo("fijo")}
-                aria-pressed={tipo === "fijo"}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-              >
-                <Home className="size-4" />
-                Fijo
-              </button>
-            </div>
+            <Segmented
+              aria-label="Tipo de gasto"
+              value={tipo}
+              onChange={setTipo}
+              options={[
+                {
+                  value: "variable",
+                  label: (
+                    <>
+                      <LineChart className="size-4" />
+                      Variable
+                    </>
+                  ),
+                },
+                {
+                  value: "fijo",
+                  label: (
+                    <>
+                      <Home className="size-4" />
+                      Fijo
+                    </>
+                  ),
+                },
+              ]}
+            />
 
             <div className="flex flex-col gap-3">
               {categorias.map((cat) => (

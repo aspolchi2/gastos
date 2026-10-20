@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Segmented from "@/components/ui/Segmented";
 
 export type Moneda = "ARS" | "USD";
 
@@ -22,7 +23,10 @@ function formatCents(cents: number) {
   });
 }
 
-const MONEDAS: Moneda[] = ["ARS", "USD"];
+const MONEDAS = [
+  { value: "ARS", label: "ARS" },
+  { value: "USD", label: "USD" },
+] as const;
 
 const MontoInput = ({
   value,
@@ -51,26 +55,19 @@ const MontoInput = ({
   return (
     <div className="flex flex-col gap-6">
       {onMonedaChange && (
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
-          {MONEDAS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onMonedaChange(m)}
-              aria-pressed={moneda === m}
-              className="rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          aria-label="Moneda"
+          value={moneda ?? "ARS"}
+          onChange={onMonedaChange}
+          options={MONEDAS}
+        />
       )}
 
       <button
         ref={displayRef}
         type="button"
         onClick={() => inputRef.current?.focus()}
-        className="flex items-end justify-center gap-2 border-b border-white/15 pb-3"
+        className="flex items-end justify-center gap-2 border-b border-white/15 pb-3 transition-colors duration-150 focus-within:border-white/50"
       >
         <span className="text-3xl font-light text-zinc-400">{symbol}</span>
         <span className="text-5xl font-light tabular-nums tracking-tight text-white">

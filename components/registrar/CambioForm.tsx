@@ -6,16 +6,18 @@ import { ArrowRightLeft, Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { aDia } from "@/lib/fecha";
 import { DatePicker } from "@/components/ui/date-picker";
 import MontoInput from "@/components/registrar/MontoInput";
+import Segmented from "@/components/ui/Segmented";
 import type { Saldo } from "@/app/utils/saldos";
 
 type Direccion = "usd-ars" | "ars-usd";
 type Status = "idle" | "loading" | "success" | "error";
 
-const TABS: { key: Direccion; label: string }[] = [
-  { key: "usd-ars", label: "Dólares a pesos" },
-  { key: "ars-usd", label: "Pesos a dólares" },
+const TABS: { value: Direccion; label: string }[] = [
+  { value: "usd-ars", label: "Dólares a pesos" },
+  { value: "ars-usd", label: "Pesos a dólares" },
 ];
 
 function fmt(cents: number, currency: "ARS" | "USD") {
@@ -44,7 +46,7 @@ export default function CambioForm({ saldo }: { saldo: Saldo }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fecha: fecha.toISOString(),
+          fecha: aDia(fecha),
           direccion,
           usd,
           precio,
@@ -80,19 +82,12 @@ export default function CambioForm({ saldo }: { saldo: Saldo }) {
           </p>
         </header>
 
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setDireccion(t.key)}
-              aria-pressed={direccion === t.key}
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition aria-pressed:bg-white/10 aria-pressed:text-white"
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          aria-label="Dirección del cambio"
+          value={direccion}
+          onChange={setDireccion}
+          options={TABS}
+        />
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="fecha">Fecha</Label>

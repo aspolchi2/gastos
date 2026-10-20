@@ -46,6 +46,11 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Colores semánticos de cada clase de movimiento. */
+  --color-gasto: #fca5a5;
+  --color-ingreso: #86efac;
+  --color-ahorro: #c4b5fd;
 }
 
 :root {
@@ -83,25 +88,27 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* La app es solo oscura: estos tokens se aplican vía <html class="dark">. */
 .dark {
-  --background: oklch(0.145 0 0);
+  color-scheme: dark;
+  --background: #030711;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(1 0 0 / 5%);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: #0d1220;
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: #030711;
+  --secondary: oklch(1 0 0 / 8%);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(1 0 0 / 8%);
+  --muted-foreground: oklch(0.705 0.015 286);
+  --accent: oklch(1 0 0 / 10%);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(1 0 0 / 35%);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -126,6 +133,12 @@
   }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  button,
+  a {
+    touch-action: manipulation;
   }
 
   /* Scrollbar - Firefox */
@@ -152,5 +165,20 @@
   }
   *::-webkit-scrollbar-corner {
     background: transparent;
+  }
+}
+
+/* Feedback de toque: escala apenas al presionar y vuelve rápido. */
+@utility pressable {
+  transition-property: transform, background-color, border-color;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out);
+  &:active {
+    transform: scale(0.98);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 }

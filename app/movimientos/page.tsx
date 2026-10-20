@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { diaUTC } from "@/lib/fecha";
 import { auth } from "@/auth";
 import { getMovimientos } from "@/app/utils/movimientos";
 import { resolverRango, rangoLabel } from "@/app/utils/rango";
@@ -33,14 +33,14 @@ export default async function MovimientosPage({
         <Link
           href="/"
           aria-label="Volver"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 active:scale-95"
+          className="pressable flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10"
         >
           <ArrowLeft className="size-5" />
         </Link>
         <h1 className="flex-1 text-2xl font-bold">Movimientos</h1>
         <ResumenRangePicker
-          from={format(start, "yyyy-MM-dd")}
-          to={format(addDays(end, -1), "yyyy-MM-dd")}
+          from={diaUTC(start)}
+          to={diaUTC(new Date(end.getTime() - 1))}
           label={label}
           basePath="/movimientos"
         />

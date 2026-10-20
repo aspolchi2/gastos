@@ -6,6 +6,7 @@ import { Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { aDia } from "@/lib/fecha";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
@@ -71,7 +72,7 @@ export default function AhorroForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fecha: fecha.toISOString(),
+          fecha: aDia(fecha),
           monto,
           moneda,
           categoria,

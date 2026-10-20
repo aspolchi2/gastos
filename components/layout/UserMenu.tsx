@@ -32,21 +32,21 @@ export default function UserMenu({ image, name }: UserMenuProps) {
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center gap-2 w-full justify-between px-4 "
+      className="relative"
     >
-      <p>{name}</p>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex rounded-full ring-offset-2 ring-offset-[#030711] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        aria-label="Cuenta"
+        className="pressable flex rounded-full ring-offset-2 ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       >
         <Image
           src={image}
           alt={name}
-          width={36}
-          height={36}
+          width={32}
+          height={32}
           className="rounded-full"
         />
       </button>
@@ -54,13 +54,16 @@ export default function UserMenu({ image, name }: UserMenuProps) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 py-1 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-56 origin-top-right animate-in fade-in-0 zoom-in-95 overflow-hidden rounded-xl border border-white/10 bg-popover py-1 shadow-lg duration-150"
         >
+          <p className="truncate border-b border-white/10 px-4 py-2.5 text-sm text-zinc-400">
+            {name}
+          </p>
           <form action={signOutAction}>
             <button
               type="submit"
               role="menuitem"
-              className="w-full px-4 py-2 text-left text-sm text-zinc-200 hover:bg-white/5"
+              className="w-full px-4 py-2.5 text-left text-sm text-zinc-200 hover:bg-white/5"
             >
               Cerrar sesión
             </button>

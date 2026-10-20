@@ -307,7 +307,7 @@ export const registrar: tabCardProps[] = [
     title: "Ahorro",
     description: "Metas y reservas.",
     icon: <PiggyBank />,
-    color: "#93C5FD",
+    color: AHORRO,
     href: "/registrar/ahorro",
   },
 ];

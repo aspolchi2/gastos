@@ -1,42 +1,43 @@
-import {
-  format,
-  parse,
-  isValid,
-  startOfDay,
-  addDays,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import {
+  comoLocal,
+  parseDia,
+  partesArgentina,
+  utcDia,
+} from "@/lib/fecha";
 
-// Resuelve el rango [start, end) a partir de los search params. `end` es
-// exclusivo (inicio del día siguiente al último día elegido). Sin params
-// válidos, cae al mes en curso.
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+// Resuelve el rango [start, end) a partir de los search params, en medianoches
+// UTC (igual que se guardan las fechas). `end` es exclusivo (inicio del día
+// siguiente al último día elegido). Sin params válidos, cae al mes en curso
+// según el calendario de Argentina.
 export function resolverRango(desde?: string, hasta?: string) {
-  const d = desde ? parse(desde, "yyyy-MM-dd", new Date()) : null;
-  const h = hasta ? parse(hasta, "yyyy-MM-dd", new Date()) : null;
-  if (d && h && isValid(d) && isValid(h) && d <= h) {
-    return { start: startOfDay(d), end: addDays(startOfDay(h), 1) };
+  const d = desde ? parseDia(desde) : null;
+  const h = hasta ? parseDia(hasta) : null;
+  if (d && h && d <= h) {
+    return { start: d, end: new Date(h.getTime() + DIA_MS) };
   }
-  const now = new Date();
-  return {
-    start: startOfMonth(now),
-    end: startOfDay(addDays(endOfMonth(now), 1)),
-  };
+  const { year, month } = partesArgentina();
+  return { start: utcDia(year, month - 1, 1), end: utcDia(year, month, 1) };
 }
 
 // Etiqueta legible: "junio 2026" si el rango es un mes completo, si no
 // "1 jun – 15 jul".
 export function rangoLabel(start: Date, end: Date) {
-  const lastDay = addDays(end, -1);
+  const lastDay = new Date(end.getTime() - DIA_MS);
   const esMesCompleto =
-    start.getDate() === 1 &&
-    lastDay.getTime() === endOfMonth(start).setHours(0, 0, 0, 0) &&
-    start.getMonth() === lastDay.getMonth();
-  if (esMesCompleto) return format(start, "MMMM yyyy", { locale: es });
-  const mismoAnio = start.getFullYear() === lastDay.getFullYear();
-  return `${format(start, "d MMM", { locale: es })} – ${format(
-    lastDay,
+    start.getUTCDate() === 1 &&
+    end.getUTCDate() === 1 &&
+    start.getUTCMonth() === lastDay.getUTCMonth() &&
+    start.getUTCFullYear() === lastDay.getUTCFullYear();
+  const desde = comoLocal(start);
+  const hasta = comoLocal(lastDay);
+  if (esMesCompleto) return format(desde, "MMMM yyyy", { locale: es });
+  const mismoAnio = desde.getFullYear() === hasta.getFullYear();
+  return `${format(desde, "d MMM", { locale: es })} – ${format(
+    hasta,
     mismoAnio ? "d MMM" : "d MMM yyyy",
     { locale: es },
   )}`;

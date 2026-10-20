@@ -20,10 +20,10 @@ const CategoriaCard = ({
       type="button"
       onClick={() => onSelect(slug)}
       aria-pressed={selected}
-      className="flex w-full items-center gap-4 rounded-xl border bg-white/5 p-4 text-left transition active:scale-[0.98] aria-pressed:border-white/40 aria-pressed:bg-white/10 border-white/10"
+      className="pressable flex w-full items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 text-left active:bg-white/[0.07] aria-pressed:border-white/40 aria-pressed:bg-white/10"
     >
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
+        className="flex size-11 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${color}1f`, color }}
       >
         {icon}

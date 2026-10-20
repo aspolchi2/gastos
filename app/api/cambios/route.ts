@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
+import { parseDia } from "@/lib/fecha";
 
 type CambioBody = {
   fecha?: string;
@@ -24,14 +25,17 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "JSON inválido" }, { status: 400 });
   }
 
-  const { fecha, direccion, usd, precio } = body;
+  const { direccion, usd, precio } = body;
+  const fecha = parseDia(body.fecha);
 
   if (
     !fecha ||
     (direccion !== "usd-ars" && direccion !== "ars-usd") ||
     typeof usd !== "number" ||
+    !Number.isSafeInteger(usd) ||
     usd <= 0 ||
     typeof precio !== "number" ||
+    !Number.isSafeInteger(precio) ||
     precio <= 0
   ) {
     return Response.json(
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
   const cambioId = new ObjectId();
   const base = {
     userEmail: session.user.email,
-    fecha: new Date(fecha),
+    fecha,
     categoria: "cambio-de-divisas",
     cambioId,
     direccion,
