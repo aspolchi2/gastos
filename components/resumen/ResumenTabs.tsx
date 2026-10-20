@@ -8,7 +8,7 @@ import { TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 
 import {
   gastoCategorias,
-  ingresoCategorias,
+  ingresoCategoriasConHistoricas,
   ahorroCategorias,
   origenes,
 } from "@/lib/data";
@@ -284,7 +284,7 @@ export default function ResumenTabs({
   const [tab, setTab] = React.useState<TabKey>("gastos");
 
   const gastoMetas = React.useMemo(() => metaMap(gastoCategorias), []);
-  const ingresoMetas = React.useMemo(() => metaMap(ingresoCategorias), []);
+  const ingresoMetas = React.useMemo(() => metaMap(ingresoCategoriasConHistoricas), []);
   const ahorroMetas = React.useMemo(() => metaMap(ahorroCategorias), []);
 
   return (

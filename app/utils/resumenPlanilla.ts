@@ -5,7 +5,7 @@ import {
   planillaConfigurada,
 } from "@/app/utils/planilla";
 import type { Clase, Movimiento } from "@/app/utils/movimientos";
-import { gastoCategorias, ingresoCategorias } from "@/lib/data";
+import { gastoCategorias, ingresoCategoriasConHistoricas } from "@/lib/data";
 import { utcDia } from "@/lib/fecha";
 
 // Lee de la planilla los movimientos de un rango para el resumen. La planilla
@@ -28,7 +28,7 @@ const SLUG_POR_NOMBRE = new Map(
 // USD", "Sueldo Ro USD"): las agrupamos con su categoría base.
 const sinSufijoUsd = (nombre: string) => nombre.replace(/\s+USD$/i, "");
 const TITULOS = new Map(
-  [...gastoCategorias, ...ingresoCategorias].map((c) => [c.slug, c.title]),
+  [...gastoCategorias, ...ingresoCategoriasConHistoricas].map((c) => [c.slug, c.title]),
 );
 
 function norm(v: Celda) {

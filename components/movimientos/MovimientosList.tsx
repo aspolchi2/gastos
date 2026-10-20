@@ -9,7 +9,7 @@ import { Trash2, Loader2 } from "lucide-react";
 
 import {
   gastoCategorias,
-  ingresoCategorias,
+  ingresoCategoriasConHistoricas,
   ahorroCategorias,
   origenes,
 } from "@/lib/data";
@@ -18,7 +18,7 @@ import type { Clase, Movimiento } from "@/app/utils/movimientos";
 import { formatMonto } from "@/lib/format";
 
 const META = new Map<string, categoriaProps>(
-  [...gastoCategorias, ...ingresoCategorias, ...ahorroCategorias].map((c) => [
+  [...gastoCategorias, ...ingresoCategoriasConHistoricas, ...ahorroCategorias].map((c) => [
     c.slug,
     c,
   ]),

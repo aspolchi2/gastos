@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/app/utils/mongodb";
-import { gastoCategorias, ingresoCategorias } from "@/lib/data";
+import { gastoCategorias, ingresoCategoriasConHistoricas } from "@/lib/data";
 
 // Copia gastos e ingresos a la planilla "Presupuesto ARS & USD" a través del
 // mismo Apps Script que usa el bot de Telegram (acciones app_add/app_delete).
@@ -32,24 +32,28 @@ export const CATEGORIA_PLANILLA: Record<string, string> = {
   "cuota-hipotecario": "Cuota hipotecario",
 };
 
-// Categorías de ingreso con equivalente en la planilla. Los sueldos ahí van por
-// persona ("Sueldo Ro", "Sueldo Agustin"), así que no se completan solos.
+// Categorías de ingreso con equivalente en la planilla.
 export const INGRESO_PLANILLA: Record<string, string> = {
   "ingreso-extra": "Ingreso Extra",
+  "sueldo-agustin": "Sueldo Agustin",
+  "sueldo-ro": "Sueldo Ro",
 };
 
-// En la planilla algunas categorías tienen una variante en dólares aparte.
-const VARIANTE_USD = new Set(["tarjetas"]);
+// En la planilla algunas categorías tienen una variante en dólares aparte
+// ("Tarjetas USD", "Sueldo Ro USD").
+const VARIANTE_USD = new Set(["tarjetas", "sueldo-ro"]);
 
 function categoriaPlanilla(m: MovimientoPlanilla) {
-  if (m.coleccion === "ingresos") return INGRESO_PLANILLA[m.categoria] ?? "";
-  const nombre = CATEGORIA_PLANILLA[m.categoria];
+  const nombre =
+    m.coleccion === "ingresos"
+      ? INGRESO_PLANILLA[m.categoria]
+      : CATEGORIA_PLANILLA[m.categoria];
   if (!nombre) return "";
   return m.moneda === "USD" && VARIANTE_USD.has(m.categoria) ? `${nombre} USD` : nombre;
 }
 
 const TITULOS = new Map(
-  [...gastoCategorias, ...ingresoCategorias].map((c) => [c.slug, c.title]),
+  [...gastoCategorias, ...ingresoCategoriasConHistoricas].map((c) => [c.slug, c.title]),
 );
 
 export type MovimientoPlanilla = {

@@ -71,11 +71,18 @@ export const ahorroCategorias: categoriaProps[] = [
 
 export const ingresoCategorias: categoriaProps[] = [
   {
-    title: "Sueldos",
-    description: "Sueldos, aguinaldos y bonos",
+    title: "Sueldo Agustin",
+    description: "Sueldo, aguinaldo y bonos",
     icon: <Briefcase />,
     color: INGRESO,
-    slug: "sueldos",
+    slug: "sueldo-agustin",
+  },
+  {
+    title: "Sueldo Ro",
+    description: "Sueldo, aguinaldo y bonos",
+    icon: <Briefcase />,
+    color: INGRESO,
+    slug: "sueldo-ro",
   },
   {
     title: "Ingreso extra",
@@ -97,6 +104,19 @@ export const ingresoCategorias: categoriaProps[] = [
     icon: <Banknote />,
     color: INGRESO,
     slug: "cambio-de-divisas",
+  },
+];
+
+// Incluye categorías que ya no se ofrecen pero existen en registros viejos
+// ("sueldos", antes de separarlo por persona). Solo para mostrar.
+export const ingresoCategoriasConHistoricas: categoriaProps[] = [
+  ...ingresoCategorias,
+  {
+    title: "Sueldos",
+    description: "Sueldos (registros anteriores)",
+    icon: <Briefcase />,
+    color: INGRESO,
+    slug: "sueldos",
   },
 ];
 

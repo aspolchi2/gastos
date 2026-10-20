@@ -4,7 +4,7 @@ import { es } from "date-fns/locale";
 import { getMovimientos, type Movimiento } from "@/app/utils/movimientos";
 import {
   gastoCategorias,
-  ingresoCategorias,
+  ingresoCategoriasConHistoricas,
   ahorroCategorias,
   origenes,
 } from "@/lib/data";
@@ -12,7 +12,7 @@ import { formatMonto } from "@/lib/format";
 
 // slug → título legible, para no mostrar los slugs crudos en el Excel.
 const titulos = new Map<string, string>(
-  [...gastoCategorias, ...ingresoCategorias, ...ahorroCategorias, ...origenes].map(
+  [...gastoCategorias, ...ingresoCategoriasConHistoricas, ...ahorroCategorias, ...origenes].map(
     (c) => [c.slug, c.title],
   ),
 );
