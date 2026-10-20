@@ -5,6 +5,7 @@ import { notifyOthers } from "@/app/utils/push";
 import { agregarEnPlanilla } from "@/app/utils/planilla";
 import { parseDia } from "@/lib/fecha";
 import { ingresoCategorias } from "@/lib/data";
+import { formatMonto, parseDetalle } from "@/lib/format";
 
 // Los cambios de divisas entran por /api/cambios (son dos movimientos enlazados).
 const CATEGORIAS = new Set(
@@ -16,6 +17,7 @@ type IngresoBody = {
   monto?: number;
   moneda?: "ARS" | "USD";
   categoria?: string;
+  detalle?: string;
 };
 
 export async function POST(request: Request) {
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
 
   const { monto, moneda, categoria } = body;
   const fecha = parseDia(body.fecha);
+  const detalle = parseDetalle(body.detalle);
 
   if (
     !fecha ||
@@ -60,15 +63,13 @@ export async function POST(request: Request) {
         monto, // en centavos
         moneda,
         categoria,
+        ...(detalle && { detalle }),
         createdAt: new Date(),
       });
 
     // Avisamos al otro usuario quién cargó el ingreso y cuánto.
     const quien = session.user.name ?? session.user.email;
-    const importe = (monto / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: moneda,
-    });
+    const importe = formatMonto(monto, moneda);
     const email = session.user.email;
     // Después de responder: avisar al otro y copiar a la planilla. Ninguno
     // bloquea ni hace fallar el guardado.
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       Promise.allSettled([
         notifyOthers(email, {
           title: "Nuevo ingreso",
-          body: `${quien} cargó un ingreso de ${importe}`,
+          body: `${quien} cargó un ingreso de ${importe}${detalle ? ` (${detalle})` : ""}`,
           url: "/",
         }),
         agregarEnPlanilla({
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
           monto,
           moneda,
           categoria,
+          detalle,
         }),
       ]),
     );

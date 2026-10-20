@@ -9,6 +9,7 @@ type MontoInputProps = {
   /** Monto en centavos. */
   value: number;
   onChange: (cents: number) => void;
+  /** En pesos se cargan enteros (sin centavos); en dólares, con centavos. */
   moneda?: Moneda;
   /** Si se omite, no se muestra el selector de moneda. */
   onMonedaChange?: (moneda: Moneda) => void;
@@ -16,10 +17,11 @@ type MontoInputProps = {
   symbol?: string;
 };
 
-function formatCents(cents: number) {
+function formatCents(cents: number, moneda: Moneda) {
+  const decimales = moneda === "ARS" ? 0 : 2;
   return (cents / 100).toLocaleString("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
   });
 }
 
@@ -31,17 +33,28 @@ const MONEDAS = [
 const MontoInput = ({
   value,
   onChange,
-  moneda,
+  moneda = "ARS",
   onMonedaChange,
   symbol = "$",
 }: MontoInputProps) => {
+  const sinCentavos = moneda === "ARS";
   const inputRef = React.useRef<HTMLInputElement>(null);
   const displayRef = React.useRef<HTMLButtonElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
-    onChange(digits ? parseInt(digits, 10) : 0);
+    const digits = e.target.value.replace(/\D/g, "").slice(0, sinCentavos ? 10 : 12);
+    const n = digits ? parseInt(digits, 10) : 0;
+    // Siempre devolvemos centavos: en pesos lo tipeado son pesos enteros.
+    onChange(sinCentavos ? n * 100 : n);
   };
+
+  // Al pasar a pesos descartamos los centavos que pudiera tener el monto.
+  const handleMonedaChange = (m: Moneda) => {
+    if (m === "ARS" && value % 100 !== 0) onChange(Math.round(value / 100) * 100);
+    onMonedaChange?.(m);
+  };
+
+  const digitos = sinCentavos ? Math.floor(value / 100) : value;
 
   // El input real es invisible, así que el navegador no lo trae a la vista al
   // abrir el teclado. Llevamos el número visible al área visible una vez que el
@@ -57,8 +70,8 @@ const MontoInput = ({
       {onMonedaChange && (
         <Segmented
           aria-label="Moneda"
-          value={moneda ?? "ARS"}
-          onChange={onMonedaChange}
+          value={moneda}
+          onChange={handleMonedaChange}
           options={MONEDAS}
         />
       )}
@@ -71,11 +84,11 @@ const MontoInput = ({
       >
         <span className="text-3xl font-light text-zinc-400">{symbol}</span>
         <span className="text-5xl font-light tabular-nums tracking-tight text-white">
-          {formatCents(value)}
+          {formatCents(value, moneda)}
         </span>
         <input
           ref={inputRef}
-          value={value ? String(value) : ""}
+          value={digitos ? String(digitos) : ""}
           onChange={handleChange}
           onFocus={scrollIntoView}
           inputMode="numeric"

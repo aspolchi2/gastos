@@ -7,6 +7,7 @@ import EnableNotifications from "@/components/pwa/EnableNotifications";
 import { registrar } from "@/lib/data";
 import clientPromise from "@/app/utils/mongodb";
 import { resolverRango } from "@/app/utils/rango";
+import { formatMonto } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,6 @@ async function gastadoEsteMes() {
   const ars = rows.find((r) => r._id === "ARS")?.total ?? 0;
   const usd = rows.find((r) => r._id === "USD")?.total ?? 0;
   return { ars, usd };
-}
-
-function fmt(cents: number, currency: "ARS" | "USD") {
-  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
 }
 
 export default async function Home() {
@@ -70,10 +67,10 @@ export default async function Home() {
           aside={
             mes && (
               <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-white">
-                {fmt(mes.ars, "ARS")}
+                {formatMonto(mes.ars, "ARS")}
                 {mes.usd !== 0 && (
                   <span className="block text-xs font-normal text-zinc-400">
-                    {fmt(mes.usd, "USD")}
+                    {formatMonto(mes.usd, "USD")}
                   </span>
                 )}
               </span>

@@ -3,6 +3,7 @@ import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
 import { parseDia } from "@/lib/fecha";
 import { ahorroCategorias } from "@/lib/data";
+import { formatMonto, parseDetalle } from "@/lib/format";
 
 const CATEGORIAS = new Set(ahorroCategorias.map((c) => c.slug));
 
@@ -11,6 +12,7 @@ type AhorroBody = {
   monto?: number;
   moneda?: "ARS" | "USD";
   categoria?: string;
+  detalle?: string;
 };
 
 export async function POST(request: Request) {
@@ -28,6 +30,7 @@ export async function POST(request: Request) {
 
   const { monto, moneda, categoria } = body;
   const fecha = parseDia(body.fecha);
+  const detalle = parseDetalle(body.detalle);
 
   if (
     !fecha ||
@@ -55,18 +58,16 @@ export async function POST(request: Request) {
         monto, // en centavos
         moneda,
         categoria,
+        ...(detalle && { detalle }),
         createdAt: new Date(),
       });
 
     // Avisamos al otro usuario quién cargó el ahorro y cuánto.
     const quien = session.user.name ?? session.user.email;
-    const importe = (monto / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: moneda,
-    });
+    const importe = formatMonto(monto, moneda);
     notifyOthers(session.user.email, {
       title: "Nuevo ahorro",
-      body: `${quien} cargó un ahorro de ${importe}`,
+      body: `${quien} cargó un ahorro de ${importe}${detalle ? ` (${detalle})` : ""}`,
       url: "/",
     }).catch(() => {
       // No bloqueamos la respuesta si falla el envío de la notificación.

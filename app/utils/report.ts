@@ -1,13 +1,14 @@
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { getMovimientos, type Movimiento, type Moneda } from "@/app/utils/movimientos";
+import { getMovimientos, type Movimiento } from "@/app/utils/movimientos";
 import {
   gastoCategorias,
   ingresoCategorias,
   ahorroCategorias,
   origenes,
 } from "@/lib/data";
+import { formatMonto } from "@/lib/format";
 
 // slug → título legible, para no mostrar los slugs crudos en el Excel.
 const titulos = new Map<string, string>(
@@ -25,11 +26,9 @@ function fmtFechaUTC(d: Date) {
   return `${dd}/${mm}/${d.getUTCFullYear()}`;
 }
 
-const ARS_FMT = '#,##0.00;[Red]-#,##0.00';
-
-function pesos(cents: number, currency: Moneda = "ARS") {
-  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
-}
+// Pesos sin centavos; dólares con dos decimales.
+const ARS_FMT = '#,##0;[Red]-#,##0';
+const USD_FMT = '#,##0.00;[Red]-#,##0.00';
 
 export type ReportResult = {
   buffer: Buffer;
@@ -64,6 +63,7 @@ export async function buildMonthlyReport(
     { header: "Fecha", key: "fecha", width: 12 },
     { header: "Movimiento", key: "clase", width: 12 },
     { header: "Categoría", key: "categoria", width: 22 },
+    { header: "Detalle", key: "detalle", width: 30 },
     { header: "Tipo", key: "tipo", width: 10 },
     { header: "Origen", key: "origen", width: 20 },
     { header: "Monto", key: "monto", width: 16 },
@@ -71,21 +71,22 @@ export async function buildMonthlyReport(
     { header: "Cargó", key: "quien", width: 26 },
   ];
   for (const m of movimientos) {
-    det.addRow({
+    const row = det.addRow({
       fecha: fmtFechaUTC(m.fecha),
       clase: m.clase,
       categoria: titulo(m.categoria),
+      detalle: m.detalle ?? "",
       tipo: m.tipo ? (m.tipo === "fijo" ? "Fijo" : "Variable") : "",
       origen: titulo(m.origen),
       monto: m.monto / 100,
       moneda: m.moneda,
       quien: m.userEmail ?? "",
     });
+    row.getCell("monto").numFmt = m.moneda === "USD" ? USD_FMT : ARS_FMT;
   }
-  det.getColumn("monto").numFmt = ARS_FMT;
   det.getRow(1).font = { bold: true };
   det.views = [{ state: "frozen", ySplit: 1 }];
-  det.autoFilter = { from: "A1", to: "H1" };
+  det.autoFilter = { from: "A1", to: "I1" };
 
   // ── Hoja Resumen ──────────────────────────────────────────────────────────
   const res = wb.addWorksheet("Resumen");
@@ -125,7 +126,7 @@ export async function buildMonthlyReport(
   };
   const fmtRow = (row: ExcelJS.Row) => {
     row.getCell("ars").numFmt = ARS_FMT;
-    row.getCell("usd").numFmt = ARS_FMT;
+    row.getCell("usd").numFmt = USD_FMT;
   };
 
   const headerRow = res.addRow({ a: `Período: ${periodoLabel}` });
@@ -162,10 +163,10 @@ export async function buildMonthlyReport(
   const filename = `gastos-${format(periodo, "yyyy-MM")}.xlsx`;
   const resumenTexto =
     `Movimientos: ${movimientos.length}\n` +
-    `Gastos: ${pesos(gTot.ars)}${gTot.usd ? ` + ${pesos(gTot.usd, "USD")}` : ""}\n` +
-    `Ingresos: ${pesos(iTot.ars)}${iTot.usd ? ` + ${pesos(iTot.usd, "USD")}` : ""}\n` +
-    `Balance: ${pesos(iTot.ars - gTot.ars)}` +
-    `${iTot.usd - gTot.usd ? ` + ${pesos(iTot.usd - gTot.usd, "USD")}` : ""}`;
+    `Gastos: ${formatMonto(gTot.ars)}${gTot.usd ? ` + ${formatMonto(gTot.usd, "USD")}` : ""}\n` +
+    `Ingresos: ${formatMonto(iTot.ars)}${iTot.usd ? ` + ${formatMonto(iTot.usd, "USD")}` : ""}\n` +
+    `Balance: ${formatMonto(iTot.ars - gTot.ars)}` +
+    `${iTot.usd - gTot.usd ? ` + ${formatMonto(iTot.usd - gTot.usd, "USD")}` : ""}`;
 
   return { buffer, filename, periodoLabel, resumenTexto };
 }

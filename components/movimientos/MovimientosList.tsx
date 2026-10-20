@@ -15,6 +15,7 @@ import {
 } from "@/lib/data";
 import type { categoriaProps } from "@/lib/types";
 import type { Clase, Movimiento } from "@/app/utils/movimientos";
+import { formatMonto } from "@/lib/format";
 
 const META = new Map<string, categoriaProps>(
   [...gastoCategorias, ...ingresoCategorias, ...ahorroCategorias].map((c) => [
@@ -32,20 +33,18 @@ const COLOR_CLASE: Record<Clase, string> = {
 
 const ORIGENES = new Map(origenes.map((o) => [o.slug, o.title]));
 
-// Segunda línea de la fila: qué es y, en gastos, si salió de un ahorro.
+// Segunda línea de la fila: el detalle que cargaron, qué es y, en gastos, si
+// salió de un ahorro.
 function detalle(m: Movimiento) {
   if (m.cambioId) return "Cambio de divisas";
-  if (m.clase !== "Gasto") return m.clase;
-  const partes = [m.tipo === "fijo" ? "Fijo" : "Variable"];
+  const partes = m.detalle ? [m.detalle] : [];
+  if (m.clase !== "Gasto") return [...partes, m.clase].join(" · ");
+  partes.push(m.tipo === "fijo" ? "Fijo" : "Variable");
   // El origen habitual es el sueldo; solo lo mostramos cuando sale de otro lado.
   if (m.origen && m.origen !== "ingresos-mensuales") {
     partes.push(ORIGENES.get(m.origen) ?? m.origen);
   }
   return partes.join(" · ");
-}
-
-function fmt(cents: number, currency: "ARS" | "USD") {
-  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
 }
 
 // Las fechas se guardan a medianoche UTC; formateamos en UTC para no correrlas
@@ -147,7 +146,7 @@ function GastadoDia({ movs }: { movs: Movimiento[] }) {
   const usd = sum("USD");
   return (
     <span className="text-xs tabular-nums text-zinc-500">
-      {[ars && fmt(ars, "ARS"), usd && fmt(usd, "USD")].filter(Boolean).join(" · ")}
+      {[ars && formatMonto(ars, "ARS"), usd && formatMonto(usd, "USD")].filter(Boolean).join(" · ")}
     </span>
   );
 }
@@ -215,7 +214,7 @@ function Fila({
             className="shrink-0 text-sm font-semibold tabular-nums"
             style={{ color: COLOR_CLASE[m.clase] }}
           >
-            {fmt(m.monto, m.moneda)}
+            {formatMonto(m.monto, m.moneda)}
           </p>
           <button
             type="button"

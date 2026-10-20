@@ -10,6 +10,7 @@ import { aDia } from "@/lib/fecha";
 import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
+import DetalleInput from "@/components/registrar/DetalleInput";
 import { ahorroCategorias } from "@/lib/data";
 
 const STEPS = ["tipo", "datos"] as const;
@@ -28,6 +29,7 @@ export default function AhorroForm() {
   const [fecha, setFecha] = React.useState<Date | undefined>(() => new Date());
   const [monto, setMonto] = React.useState(0);
   const [moneda, setMoneda] = React.useState<Moneda>("ARS");
+  const [detalle, setDetalle] = React.useState("");
   const [categoria, setCategoria] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function AhorroForm() {
           fecha: aDia(fecha),
           monto,
           moneda,
+          detalle,
           categoria,
         }),
       });
@@ -134,6 +137,8 @@ export default function AhorroForm() {
                 onMonedaChange={setMoneda}
               />
             </div>
+
+            <DetalleInput value={detalle} onChange={setDetalle} />
           </div>
         )}
       </div>

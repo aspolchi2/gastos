@@ -12,15 +12,12 @@ import ResumenTabs, {
   type CatTotal,
   type TabData,
 } from "@/components/resumen/ResumenTabs";
+import { formatMonto } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 type CatRow = { _id: { categoria?: string; moneda: "ARS" | "USD" }; total: number };
 type TipoRow = { _id: { tipo?: string; moneda: "ARS" | "USD" }; total: number };
-
-function fmtMoneda(cents: number, currency: "ARS" | "USD" = "ARS") {
-  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
-}
 
 function aggToTab(rows: CatRow[]): TabData {
   const map = new Map<string, CatTotal>();
@@ -147,11 +144,11 @@ export default async function ResumenPage({
           className="mt-1 text-3xl font-bold tabular-nums"
           style={{ color: balanceArs < 0 ? "#FCA5A5" : "#86EFAC" }}
         >
-          {fmtMoneda(balanceArs)}
+          {formatMonto(balanceArs)}
         </p>
         {balanceUsd !== 0 && (
           <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
-            {fmtMoneda(balanceUsd, "USD")}
+            {formatMonto(balanceUsd, "USD")}
           </p>
         )}
       </div>

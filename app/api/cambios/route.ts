@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
 import { parseDia } from "@/lib/fecha";
+import { formatMonto } from "@/lib/format";
 
 type CambioBody = {
   fecha?: string;
@@ -77,14 +78,8 @@ export async function POST(request: Request) {
     await client.db("gastos").collection("ingresos").insertMany(movimientos);
 
     const quien = session.user.name ?? session.user.email;
-    const dolares = (usd / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: "USD",
-    });
-    const pesos = (totalArs / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: "ARS",
-    });
+    const dolares = formatMonto(usd, "USD");
+    const pesos = formatMonto(totalArs, "ARS");
     const detalle =
       direccion === "usd-ars"
         ? `vendió ${dolares} a ${pesos}`

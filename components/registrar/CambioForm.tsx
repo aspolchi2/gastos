@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import MontoInput from "@/components/registrar/MontoInput";
 import Segmented from "@/components/ui/Segmented";
 import type { Saldo } from "@/app/utils/saldos";
+import { formatMonto } from "@/lib/format";
 
 type Direccion = "usd-ars" | "ars-usd";
 type Status = "idle" | "loading" | "success" | "error";
@@ -19,10 +20,6 @@ const TABS: { value: Direccion; label: string }[] = [
   { value: "usd-ars", label: "Dólares a pesos" },
   { value: "ars-usd", label: "Pesos a dólares" },
 ];
-
-function fmt(cents: number, currency: "ARS" | "USD") {
-  return (cents / 100).toLocaleString("es-AR", { style: "currency", currency });
-}
 
 export default function CambioForm({ saldo }: { saldo: Saldo }) {
   const router = useRouter();
@@ -77,8 +74,8 @@ export default function CambioForm({ saldo }: { saldo: Saldo }) {
           <h1 className="text-2xl font-bold">Cambio de divisas</h1>
           <p className="mt-1 text-sm text-zinc-400">
             {direccion === "usd-ars"
-              ? `Disponible en dólares: ${fmt(saldo.usd, "USD")}`
-              : `Disponible en pesos: ${fmt(saldo.ars, "ARS")}`}
+              ? `Disponible en dólares: ${formatMonto(saldo.usd, "USD")}`
+              : `Disponible en pesos: ${formatMonto(saldo.ars, "ARS")}`}
           </p>
         </header>
 
@@ -96,12 +93,12 @@ export default function CambioForm({ saldo }: { saldo: Saldo }) {
 
         <div className="flex flex-col gap-2">
           <Label>Cantidad de dólares</Label>
-          <MontoInput value={usd} onChange={setUsd} symbol="US$" />
+          <MontoInput value={usd} onChange={setUsd} moneda="USD" symbol="US$" />
         </div>
 
         <div className="flex flex-col gap-2">
           <Label>Precio del dólar (ARS)</Label>
-          <MontoInput value={precio} onChange={setPrecio} symbol="$" />
+          <MontoInput value={precio} onChange={setPrecio} moneda="ARS" symbol="$" />
         </div>
 
         {valido && (
@@ -109,16 +106,16 @@ export default function CambioForm({ saldo }: { saldo: Saldo }) {
             <div className="flex items-center gap-2 text-sm text-zinc-400">
               <ArrowRightLeft className="size-4" />
               {direccion === "usd-ars" ? "Vendés" : "Comprás"}{" "}
-              {fmt(usd, "USD")}
+              {formatMonto(usd, "USD")}
             </div>
             <p className="mt-1 text-2xl font-bold tabular-nums text-white">
               {direccion === "usd-ars" ? "Recibís " : "Pagás "}
-              {fmt(totalArs, "ARS")}
+              {formatMonto(totalArs, "ARS")}
             </p>
             <p className="mt-2 text-xs text-zinc-500">
               {direccion === "usd-ars"
-                ? `Se descuentan ${fmt(usd, "USD")} de tu saldo en dólares y se suman ${fmt(totalArs, "ARS")} a pesos.`
-                : `Se descuentan ${fmt(totalArs, "ARS")} de pesos y se suman ${fmt(usd, "USD")} a tu saldo en dólares.`}
+                ? `Se descuentan ${formatMonto(usd, "USD")} de tu saldo en dólares y se suman ${formatMonto(totalArs, "ARS")} a pesos.`
+                : `Se descuentan ${formatMonto(totalArs, "ARS")} de pesos y se suman ${formatMonto(usd, "USD")} a tu saldo en dólares.`}
             </p>
           </div>
         )}

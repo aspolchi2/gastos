@@ -11,8 +11,10 @@ import { DatePicker } from "@/components/ui/date-picker";
 import CategoriaCard from "@/components/registrar/CategoriaCard";
 import Segmented from "@/components/ui/Segmented";
 import MontoInput, { type Moneda } from "@/components/registrar/MontoInput";
+import DetalleInput from "@/components/registrar/DetalleInput";
 import { gastosVariables, gastosFijos, origenes } from "@/lib/data";
 import type { Saldo, Saldos } from "@/app/utils/saldos";
+import { formatMonto } from "@/lib/format";
 
 const STEPS = ["datos", "tipo", "origen"] as const;
 
@@ -25,19 +27,12 @@ const TITULOS: Record<(typeof STEPS)[number], string> = {
 type TipoGasto = "variable" | "fijo";
 type Status = "idle" | "loading" | "success" | "error";
 
-function formatMoneda(cents: number, currency: Moneda) {
-  return (cents / 100).toLocaleString("es-AR", {
-    style: "currency",
-    currency,
-  });
-}
-
 // Descripción del origen con su saldo disponible por moneda. El USD solo se
 // muestra si hay movimientos en esa moneda.
 function describeSaldo(saldo?: Saldo) {
   if (!saldo) return "Sin movimientos";
-  const partes = [formatMoneda(saldo.ars, "ARS")];
-  if (saldo.usd !== 0) partes.push(formatMoneda(saldo.usd, "USD"));
+  const partes = [formatMonto(saldo.ars, "ARS")];
+  if (saldo.usd !== 0) partes.push(formatMonto(saldo.usd, "USD"));
   return `Disponible: ${partes.join(" · ")}`;
 }
 
@@ -48,6 +43,7 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
   const [fecha, setFecha] = React.useState<Date | undefined>(() => new Date());
   const [monto, setMonto] = React.useState(0);
   const [moneda, setMoneda] = React.useState<Moneda>("ARS");
+  const [detalle, setDetalle] = React.useState("");
   const [tipo, setTipo] = React.useState<TipoGasto>("variable");
   const [categoria, setCategoria] = React.useState<string | null>(null);
   const [origen, setOrigen] = React.useState<string | null>(null);
@@ -100,6 +96,7 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
           fecha: aDia(fecha),
           monto,
           moneda,
+          detalle,
           tipo,
           categoria,
           origen,
@@ -146,6 +143,8 @@ export default function GastoForm({ saldos }: { saldos: Saldos }) {
                 onMonedaChange={setMoneda}
               />
             </div>
+
+            <DetalleInput value={detalle} onChange={setDetalle} />
           </div>
         )}
 

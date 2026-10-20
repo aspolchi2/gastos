@@ -16,6 +16,7 @@ import type { categoriaProps } from "@/lib/types";
 import Segmented from "@/components/ui/Segmented";
 import type { Saldos } from "@/app/utils/saldos";
 import type { Movimiento } from "@/app/utils/movimientos";
+import { formatMonto } from "@/lib/format";
 
 export type CatTotal = { slug: string; ars: number; usd: number };
 export type TabData = { items: CatTotal[]; totalArs: number; totalUsd: number };
@@ -39,16 +40,9 @@ const TABS: { value: TabKey; label: string }[] = [
   { value: "ingresos", label: "Ingresos" },
 ];
 
-function fmt(cents: number, currency: "ARS" | "USD" = "ARS") {
-  return (cents / 100).toLocaleString("es-AR", {
-    style: "currency",
-    currency,
-  });
-}
-
 function montoLabel(ars: number, usd: number) {
-  const partes = [fmt(ars, "ARS")];
-  if (usd !== 0) partes.push(fmt(usd, "USD"));
+  const partes = [formatMonto(ars, "ARS")];
+  if (usd !== 0) partes.push(formatMonto(usd, "USD"));
   return partes.join(" · ");
 }
 
@@ -167,10 +161,13 @@ function GastoDetalle({
                     />
                     <span className="truncate text-sm text-white">
                       {meta?.title ?? m.categoria}
+                      {m.detalle && (
+                        <span className="text-zinc-400"> · {m.detalle}</span>
+                      )}
                     </span>
                   </span>
                   <span className="shrink-0 text-sm tabular-nums text-zinc-300">
-                    {fmt(m.monto, m.moneda)}
+                    {formatMonto(m.monto, m.moneda)}
                   </span>
                 </div>
               );
@@ -205,11 +202,11 @@ function Hero({
         className="mt-1 text-3xl font-bold tabular-nums"
         style={{ color: ars < 0 ? "#FCA5A5" : undefined }}
       >
-        {fmt(ars)}
+        {formatMonto(ars)}
       </p>
       {usd !== 0 && (
         <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
-          {fmt(usd, "USD")}
+          {formatMonto(usd, "USD")}
         </p>
       )}
     </div>
@@ -236,10 +233,10 @@ function GastoTotal({
         <TrendingDown className="size-4 text-(--color-gasto)" />
         Gastado en el período
       </div>
-      <p className="mt-1 text-3xl font-bold tabular-nums">{fmt(ars)}</p>
+      <p className="mt-1 text-3xl font-bold tabular-nums">{formatMonto(ars)}</p>
       {usd !== 0 && (
         <p className="mt-0.5 text-base font-medium tabular-nums text-zinc-300">
-          {fmt(usd, "USD")}
+          {formatMonto(usd, "USD")}
         </p>
       )}
       {base > 0 && (
@@ -260,13 +257,13 @@ function GastoTotal({
               <span className="size-2 rounded-full bg-[#7DD3FC]" />
               Variables
               <span className="tabular-nums text-zinc-200">
-                {fmt(variableArs)}
+                {formatMonto(variableArs)}
               </span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-[#FDBA74]" />
               Fijos
-              <span className="tabular-nums text-zinc-200">{fmt(fijoArs)}</span>
+              <span className="tabular-nums text-zinc-200">{formatMonto(fijoArs)}</span>
             </span>
           </div>
         </div>

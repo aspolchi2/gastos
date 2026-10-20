@@ -19,6 +19,7 @@ export type Movimiento = {
   userEmail?: string;
   /** Presente en los ingresos que forman parte de un cambio de divisas. */
   cambioId?: string;
+  detalle?: string;
 };
 
 type Doc = {
@@ -31,6 +32,7 @@ type Doc = {
   origen?: string;
   userEmail?: string;
   cambioId?: ObjectId;
+  detalle?: string;
 };
 
 /**
@@ -64,6 +66,7 @@ export async function getMovimientos(
       origen: d.origen,
       userEmail: d.userEmail,
       cambioId: d.cambioId?.toString(),
+      detalle: d.detalle,
     }));
 
   return [

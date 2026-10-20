@@ -43,7 +43,17 @@ export type MovimientoPlanilla = {
   moneda: "ARS" | "USD";
   categoria: string;
   tipo?: "variable" | "fijo";
+  detalle?: string;
 };
+
+// Descripción de la fila: el detalle si lo hay. Si la categoría no tiene
+// equivalente en el desplegable, la anteponemos para no perderla.
+function descripcion(m: MovimientoPlanilla) {
+  const titulo = TITULOS.get(m.categoria) ?? m.categoria;
+  if (!m.detalle) return titulo;
+  const enDesplegable = m.coleccion === "gastos" && m.categoria in CATEGORIA_PLANILLA;
+  return enDesplegable ? m.detalle : `${titulo} · ${m.detalle}`;
+}
 
 async function llamar(action: string, datos: Record<string, unknown>) {
   const res = await fetch(URL!, {
@@ -84,7 +94,7 @@ export async function agregarEnPlanilla(m: MovimientoPlanilla) {
       dia: m.fecha.getUTCDate(),
       mes: m.fecha.getUTCMonth() + 1,
       anio: m.fecha.getUTCFullYear(),
-      descripcion: TITULOS.get(m.categoria) ?? m.categoria,
+      descripcion: descripcion(m),
       categoria: m.coleccion === "gastos" ? (CATEGORIA_PLANILLA[m.categoria] ?? "") : "",
       moneda: m.moneda,
       monto: m.monto / 100,

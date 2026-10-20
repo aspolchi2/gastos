@@ -5,6 +5,7 @@ import { notifyOthers } from "@/app/utils/push";
 import { agregarEnPlanilla } from "@/app/utils/planilla";
 import { parseDia } from "@/lib/fecha";
 import { gastoCategorias, origenes } from "@/lib/data";
+import { formatMonto, parseDetalle } from "@/lib/format";
 
 const CATEGORIAS = new Set(gastoCategorias.map((c) => c.slug));
 const ORIGENES = new Set(origenes.map((o) => o.slug));
@@ -16,6 +17,7 @@ type GastoBody = {
   tipo?: "variable" | "fijo";
   categoria?: string;
   origen?: string;
+  detalle?: string;
 };
 
 export async function POST(request: Request) {
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
 
   const { monto, moneda, tipo, categoria, origen } = body;
   const fecha = parseDia(body.fecha);
+  const detalle = parseDetalle(body.detalle);
 
   if (
     !fecha ||
@@ -65,15 +68,13 @@ export async function POST(request: Request) {
         tipo,
         categoria,
         origen,
+        ...(detalle && { detalle }),
         createdAt: new Date(),
       });
 
     // Avisamos al otro usuario quién cargó el gasto y cuánto.
     const quien = session.user.name ?? session.user.email;
-    const importe = (monto / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: moneda,
-    });
+    const importe = formatMonto(monto, moneda);
     const email = session.user.email;
     // Después de responder: avisar al otro y copiar a la planilla. Ninguno
     // bloquea ni hace fallar el guardado.
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       Promise.allSettled([
         notifyOthers(email, {
           title: "Nuevo gasto",
-          body: `${quien} cargó un gasto de ${importe}`,
+          body: `${quien} cargó un gasto de ${importe}${detalle ? ` (${detalle})` : ""}`,
           url: "/",
         }),
         agregarEnPlanilla({
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
           moneda,
           categoria,
           tipo,
+          detalle,
         }),
       ]),
     );

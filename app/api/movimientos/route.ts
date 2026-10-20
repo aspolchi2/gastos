@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { notifyOthers } from "@/app/utils/push";
 import { borrarDePlanilla } from "@/app/utils/planilla";
+import { formatMonto } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,10 +66,7 @@ export async function DELETE(request: Request) {
     }
 
     const quien = session.user.name ?? session.user.email;
-    const importe = (Math.abs(doc.monto) / 100).toLocaleString("es-AR", {
-      style: "currency",
-      currency: doc.moneda,
-    });
+    const importe = formatMonto(Math.abs(doc.monto), doc.moneda);
     const que = doc.cambioId
       ? "un cambio de divisas"
       : `${ARTICULO[coleccion]} de ${importe}`;
