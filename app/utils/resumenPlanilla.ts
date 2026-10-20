@@ -24,9 +24,9 @@ const SLUG_POR_NOMBRE = new Map(
   ),
 );
 
-// La planilla tiene variantes en dólares como categoría aparte ("Tarjetas
-// USD", "Sueldo Ro USD"): las agrupamos con su categoría base.
-const sinSufijoUsd = (nombre: string) => nombre.replace(/\s+USD$/i, "");
+// La planilla tiene variantes por moneda como categoría aparte ("Tarjetas
+// USD", "Sueldo Ro USD", "Pago de deudas ARS"): las agrupamos con su base.
+const sinSufijoMoneda = (nombre: string) => nombre.replace(/\s+(USD|ARS)$/i, "");
 const TITULOS = new Map(
   [...gastoCategorias, ...ingresoCategoriasConHistoricas].map((c) => [c.slug, c.title]),
 );
@@ -87,7 +87,7 @@ export async function getMovimientosPlanilla(
       const fecha = utcDia(anio, hoja.mes - 1, dia(f[C.dia]));
       if (fecha < start || fecha >= end) return;
 
-      const nombreCat = sinSufijoUsd(String(f[C.categoria] ?? "").trim());
+      const nombreCat = sinSufijoMoneda(String(f[C.categoria] ?? "").trim());
       const descripcion = String(f[C.descripcion] ?? "").trim();
       // Slug de la app si la categoría existe en ella; si no, el nombre tal cual
       // (o la descripción, en ingresos que no usan la columna Categoría).

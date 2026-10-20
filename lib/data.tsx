@@ -246,6 +246,13 @@ export const gastosVariables: categoriaProps[] = [
     color: VARIABLE,
     slug: "salud",
   },
+  {
+    title: "Pago de deudas",
+    description: "Otros préstamos, préstamos familiares",
+    icon: <Layers />,
+    color: VARIABLE,
+    slug: "pago-de-deudas",
+  },
 ];
 
 export const gastosFijos: categoriaProps[] = [
@@ -269,13 +276,6 @@ export const gastosFijos: categoriaProps[] = [
     icon: <Percent />,
     color: FIJO,
     slug: "impuestos",
-  },
-  {
-    title: "Pago de deudas",
-    description: "Otros préstamos, préstamos familiares",
-    icon: <Layers />,
-    color: FIJO,
-    slug: "pago-de-deudas",
   },
   {
     title: "Seguros",

@@ -30,6 +30,7 @@ export const CATEGORIA_PLANILLA: Record<string, string> = {
   servicios: "Servicios",
   tarjetas: "Tarjetas",
   "cuota-hipotecario": "Cuota hipotecario",
+  "pago-de-deudas": "Pago de deudas",
 };
 
 // Categorías de ingreso con equivalente en la planilla.
@@ -42,6 +43,8 @@ export const INGRESO_PLANILLA: Record<string, string> = {
 // En la planilla algunas categorías tienen una variante en dólares aparte
 // ("Tarjetas USD", "Sueldo Ro USD").
 const VARIANTE_USD = new Set(["tarjetas", "sueldo-ro"]);
+// Y otras llevan siempre la moneda en el nombre ("Pago de deudas ARS/USD").
+const CON_MONEDA = new Set(["pago-de-deudas"]);
 
 function categoriaPlanilla(m: MovimientoPlanilla) {
   const nombre =
@@ -49,6 +52,7 @@ function categoriaPlanilla(m: MovimientoPlanilla) {
       ? INGRESO_PLANILLA[m.categoria]
       : CATEGORIA_PLANILLA[m.categoria];
   if (!nombre) return "";
+  if (CON_MONEDA.has(m.categoria)) return `${nombre} ${m.moneda}`;
   return m.moneda === "USD" && VARIANTE_USD.has(m.categoria) ? `${nombre} USD` : nombre;
 }
 
