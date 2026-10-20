@@ -12,7 +12,7 @@ const SECRET = process.env.SHEETS_SECRET;
 
 // slug de la app → opción del desplegable "Categoría" de la planilla. Las que
 // no tienen equivalente quedan sin categoría (la descripción las identifica).
-const CATEGORIA_PLANILLA: Record<string, string> = {
+export const CATEGORIA_PLANILLA: Record<string, string> = {
   alimentacion: "Alimentación",
   "arreglos-casa": "Arreglos casa",
   "arreglos-auto": "Auto",
@@ -29,7 +29,24 @@ const CATEGORIA_PLANILLA: Record<string, string> = {
   seguros: "Seguros",
   servicios: "Servicios",
   tarjetas: "Tarjetas",
+  "cuota-hipotecario": "Cuota hipotecario",
 };
+
+// Categorías de ingreso con equivalente en la planilla. Los sueldos ahí van por
+// persona ("Sueldo Ro", "Sueldo Agustin"), así que no se completan solos.
+export const INGRESO_PLANILLA: Record<string, string> = {
+  "ingreso-extra": "Ingreso Extra",
+};
+
+// En la planilla algunas categorías tienen una variante en dólares aparte.
+const VARIANTE_USD = new Set(["tarjetas"]);
+
+function categoriaPlanilla(m: MovimientoPlanilla) {
+  if (m.coleccion === "ingresos") return INGRESO_PLANILLA[m.categoria] ?? "";
+  const nombre = CATEGORIA_PLANILLA[m.categoria];
+  if (!nombre) return "";
+  return m.moneda === "USD" && VARIANTE_USD.has(m.categoria) ? `${nombre} USD` : nombre;
+}
 
 const TITULOS = new Map(
   [...gastoCategorias, ...ingresoCategorias].map((c) => [c.slug, c.title]),
@@ -51,11 +68,14 @@ export type MovimientoPlanilla = {
 function descripcion(m: MovimientoPlanilla) {
   const titulo = TITULOS.get(m.categoria) ?? m.categoria;
   if (!m.detalle) return titulo;
-  const enDesplegable = m.coleccion === "gastos" && m.categoria in CATEGORIA_PLANILLA;
+  const enDesplegable = categoriaPlanilla(m) !== "";
   return enDesplegable ? m.detalle : `${titulo} · ${m.detalle}`;
 }
 
-async function llamar(action: string, datos: Record<string, unknown>) {
+export async function llamar<T = Record<string, unknown>>(
+  action: string,
+  datos: Record<string, unknown> = {},
+): Promise<T & { ok: true }> {
   const res = await fetch(URL!, {
     method: "POST",
     // Apps Script no acepta application/json sin preflight; el bot usa lo mismo.
@@ -65,14 +85,14 @@ async function llamar(action: string, datos: Record<string, unknown>) {
     signal: AbortSignal.timeout(20_000),
   });
   const texto = await res.text();
-  let data: { ok: boolean; error?: string };
+  let data: { ok: boolean; error?: string } & T;
   try {
     data = JSON.parse(texto);
   } catch {
     throw new Error(`Respuesta inesperada del Apps Script (${res.status})`);
   }
   if (!data.ok) throw new Error(data.error ?? "Error del Apps Script");
-  return data;
+  return data as T & { ok: true };
 }
 
 async function anotar(m: MovimientoPlanilla, estado: Record<string, unknown>) {
@@ -84,6 +104,8 @@ async function anotar(m: MovimientoPlanilla, estado: Record<string, unknown>) {
 }
 
 /** Escribe el movimiento en la pestaña de su mes. No tira: anota el resultado. */
+export const planillaConfigurada = Boolean(URL && SECRET);
+
 export async function agregarEnPlanilla(m: MovimientoPlanilla) {
   if (!URL || !SECRET) return;
   try {
@@ -95,7 +117,7 @@ export async function agregarEnPlanilla(m: MovimientoPlanilla) {
       mes: m.fecha.getUTCMonth() + 1,
       anio: m.fecha.getUTCFullYear(),
       descripcion: descripcion(m),
-      categoria: m.coleccion === "gastos" ? (CATEGORIA_PLANILLA[m.categoria] ?? "") : "",
+      categoria: categoriaPlanilla(m),
       moneda: m.moneda,
       monto: m.monto / 100,
     });

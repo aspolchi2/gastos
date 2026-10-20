@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { ChartColumn, ListOrdered } from "lucide-react";
 import { auth } from "@/auth";
@@ -8,26 +9,54 @@ import { registrar } from "@/lib/data";
 import clientPromise from "@/app/utils/mongodb";
 import { resolverRango } from "@/app/utils/rango";
 import { formatMonto } from "@/lib/format";
+import { getMovimientosPlanilla } from "@/app/utils/resumenPlanilla";
 
 export const dynamic = "force-dynamic";
 
 type TotalRow = { _id: "ARS" | "USD"; total: number };
 
-// Total gastado en el mes en curso, por moneda (centavos).
+// Total gastado en el mes en curso, por moneda (centavos). Sale de la planilla
+// para coincidir con el resumen; si no responde, de lo cargado en la app.
 async function gastadoEsteMes() {
   const { start, end } = resolverRango();
-  const client = await clientPromise;
-  const rows = await client
-    .db("gastos")
-    .collection("gastos")
-    .aggregate<TotalRow>([
-      { $match: { fecha: { $gte: start, $lt: end } } },
-      { $group: { _id: "$moneda", total: { $sum: "$monto" } } },
-    ])
-    .toArray();
-  const ars = rows.find((r) => r._id === "ARS")?.total ?? 0;
-  const usd = rows.find((r) => r._id === "USD")?.total ?? 0;
-  return { ars, usd };
+  try {
+    const movs = await getMovimientosPlanilla(start, end);
+    const sum = (moneda: "ARS" | "USD") =>
+      movs
+        .filter((m) => m.clase === "Gasto" && m.moneda === moneda)
+        .reduce((a, m) => a + m.monto, 0);
+    return { ars: sum("ARS"), usd: sum("USD") };
+  } catch {
+    const client = await clientPromise;
+    const rows = await client
+      .db("gastos")
+      .collection("gastos")
+      .aggregate<TotalRow>([
+        { $match: { fecha: { $gte: start, $lt: end } } },
+        { $group: { _id: "$moneda", total: { $sum: "$monto" } } },
+      ])
+      .toArray();
+    const ars = rows.find((r) => r._id === "ARS")?.total ?? 0;
+    const usd = rows.find((r) => r._id === "USD")?.total ?? 0;
+    return { ars, usd };
+  }
+}
+
+// Monto del mes a la derecha de la tarjeta. Va en Suspense: la home no espera
+// a la planilla para mostrarse.
+async function GastadoMes() {
+  const mes = await gastadoEsteMes().catch(() => null);
+  if (!mes) return null;
+  return (
+    <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-white">
+      {formatMonto(mes.ars, "ARS")}
+      {mes.usd !== 0 && (
+        <span className="block text-xs font-normal text-zinc-400">
+          {formatMonto(mes.usd, "USD")}
+        </span>
+      )}
+    </span>
+  );
 }
 
 export default async function Home() {
@@ -35,9 +64,6 @@ export default async function Home() {
   if (!session?.user) {
     redirect("/login");
   }
-
-  // Si la base falla, la home sigue sirviendo para cargar movimientos.
-  const mes = await gastadoEsteMes().catch(() => null);
 
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-2">
@@ -59,22 +85,17 @@ export default async function Home() {
         <TabCard
           href="/resumen"
           title="Resumen"
-          description={
-            mes ? "Gastado este mes" : "Gastos por categoría."
-          }
+          description="Este mes"
           icon={<ChartColumn />}
           color="#A1A1AA"
           aside={
-            mes && (
-              <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-white">
-                {formatMonto(mes.ars, "ARS")}
-                {mes.usd !== 0 && (
-                  <span className="block text-xs font-normal text-zinc-400">
-                    {formatMonto(mes.usd, "USD")}
-                  </span>
-                )}
-              </span>
-            )
+            <Suspense
+              fallback={
+                <span className="h-5 w-20 shrink-0 animate-pulse rounded bg-white/10" />
+              }
+            >
+              <GastadoMes />
+            </Suspense>
           }
         />
         <TabCard

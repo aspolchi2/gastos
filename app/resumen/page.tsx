@@ -5,7 +5,8 @@ import { diaUTC } from "@/lib/fecha";
 import { auth } from "@/auth";
 import clientPromise from "@/app/utils/mongodb";
 import { getOrigenSaldos } from "@/app/utils/saldos";
-import { getMovimientos } from "@/app/utils/movimientos";
+import { getMovimientos, type Movimiento } from "@/app/utils/movimientos";
+import { getMovimientosPlanilla } from "@/app/utils/resumenPlanilla";
 import { resolverRango, rangoLabel } from "@/app/utils/rango";
 import ResumenRangePicker from "@/components/resumen/ResumenRangePicker";
 import ResumenTabs, {
@@ -17,7 +18,15 @@ import { formatMonto } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 type CatRow = { _id: { categoria?: string; moneda: "ARS" | "USD" }; total: number };
-type TipoRow = { _id: { tipo?: string; moneda: "ARS" | "USD" }; total: number };
+
+function movsToTab(movs: Movimiento[]): TabData {
+  return aggToTab(
+    movs.map((m) => ({
+      _id: { categoria: m.categoria, moneda: m.moneda },
+      total: m.monto,
+    })),
+  );
+}
 
 function aggToTab(rows: CatRow[]): TabData {
   const map = new Map<string, CatTotal>();
@@ -46,71 +55,52 @@ export default async function ResumenPage({
 
   const { desde, hasta } = await searchParams;
   const { start, end } = resolverRango(desde, hasta);
-  const mesMatch = { fecha: { $gte: start, $lt: end } };
-
   const client = await clientPromise;
   const db = client.db("gastos");
 
-  const groupCat = [
-    {
-      $group: {
-        _id: { categoria: "$categoria", moneda: "$moneda" },
-        total: { $sum: "$monto" },
-      },
-    },
-  ];
-
-  const [
-    gastosRows,
-    ingresosRows,
-    ahorrosRows,
-    gastosTipoRows,
-    saldos,
-    movimientos,
-  ] = await Promise.all([
-      db
-        .collection("gastos")
-        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
-        .toArray(),
-      db
-        .collection("ingresos")
-        .aggregate<CatRow>([{ $match: mesMatch }, ...groupCat])
-        .toArray(),
-      // Ahorros: acumulado de todos los tiempos, sin filtrar por el rango.
-      db.collection("ahorros").aggregate<CatRow>(groupCat).toArray(),
-      db
-        .collection("gastos")
-        .aggregate<TipoRow>([
-          { $match: mesMatch },
-          {
-            $group: {
-              _id: { tipo: "$tipo", moneda: "$moneda" },
-              total: { $sum: "$monto" },
-            },
+  // Gastos e ingresos salen de la planilla (tiene también lo cargado por el bot
+  // y a mano). Si no responde, caemos a lo cargado en la app. Ahorros y
+  // saldos por origen solo existen en la app.
+  const [planilla, ahorrosRows, saldos] = await Promise.all([
+    getMovimientosPlanilla(start, end).catch((error) => {
+      console.error("Resumen: no se pudo leer la planilla", error);
+      return null;
+    }),
+    // Ahorros: acumulado de todos los tiempos, sin filtrar por el rango.
+    db
+      .collection("ahorros")
+      .aggregate<CatRow>([
+        {
+          $group: {
+            _id: { categoria: "$categoria", moneda: "$moneda" },
+            total: { $sum: "$monto" },
           },
-        ])
-        .toArray(),
-      getOrigenSaldos(),
-      getMovimientos(start, end),
-    ]);
+        },
+      ])
+      .toArray(),
+    getOrigenSaldos(),
+  ]);
+  const movimientos = planilla ?? (await getMovimientos(start, end));
+  const fuente = planilla ? "planilla" : "app";
 
-  const gastos = aggToTab(gastosRows);
-  const ingresos = aggToTab(ingresosRows);
+  const gastosMovs = movimientos.filter((m) => m.clase === "Gasto");
+  const gastos = movsToTab(gastosMovs);
+  const ingresos = movsToTab(movimientos.filter((m) => m.clase === "Ingreso"));
   const ahorros = aggToTab(ahorrosRows);
 
   // Detalle de gastos individuales, más recientes primero, para el listado por
   // día dentro de la pestaña Gastos.
-  const gastosDetalle = movimientos
-    .filter((m) => m.clase === "Gasto")
-    .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+  const gastosDetalle = [...gastosMovs].sort(
+    (a, b) => b.fecha.getTime() - a.fecha.getTime(),
+  );
 
   // Desglose fijo/variable de gastos (solo ARS para la barra).
   let fijoArs = 0;
   let variableArs = 0;
-  for (const r of gastosTipoRows) {
-    if (r._id.moneda !== "ARS") continue;
-    if (r._id.tipo === "fijo") fijoArs += r.total;
-    else if (r._id.tipo === "variable") variableArs += r.total;
+  for (const m of gastosMovs) {
+    if (m.moneda !== "ARS") continue;
+    if (m.tipo === "fijo") fijoArs += m.monto;
+    else if (m.tipo === "variable") variableArs += m.monto;
   }
 
   const label = rangoLabel(start, end);
@@ -134,6 +124,12 @@ export default async function ResumenPage({
           label={label}
         />
       </div>
+
+      {fuente === "app" && (
+        <p className="-mt-2 text-xs text-amber-300/80">
+          No se pudo leer la planilla: se muestra solo lo cargado en la app.
+        </p>
+      )}
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="flex items-center gap-2 text-sm text-zinc-400">
